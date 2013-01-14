@@ -1,0 +1,10 @@
+<html>
+  <head>
+    <title>Error 414</title>
+  </head>
+  <body>
+    <p>
+      Error 414 : Request-URI Too Long
+    </p>
+  </body>
+</html>

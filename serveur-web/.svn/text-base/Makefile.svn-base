@@ -1,0 +1,344 @@
+PREFIX=.
+
+INCDIR = $(PREFIX)
+LIBDIR = $(PREFIX)
+BINDIR = $(PREFIX)
+
+CC= gcc
+CFLAGS= -std=c99 -g -Wall -O3 -D_REENTRANT -DNDEBUG
+CPPFLAGS= -I $(INCDIR)
+LDFLAGS= -L $(LIBDIR)
+LDLIBS= -lm -lpthread -lcurses
+LIBFILENAME= 
+INSTHEADERS= 
+LIBOBJS= 
+OUTFILE= lina
+OBJS= $(LIBOBJS) serveur.o configuration.o encode.o decode.o makeLog.o authentification.o getContentType.o requete.o memoire.o buffer.o sendrecv.o client.o
+SRCS= serveur.c configuration.c encode.c decode.c makeLog.c authentification.c getContentType.c requete.c memoire.c buffer.c sendrecv.c client.c
+
+all: $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(OUTFILE)
+
+clean :
+	rm -f  $(OUTFILE) $(OBJS)
+	rm -f *~
+
+depend:
+	makedepend -- $(CFLAGS) -- $(SRCS)
+
+
+# DO NOT DELETE
+
+serveur.o: client.h buffer.h memoire.h /usr/include/pthread.h
+serveur.o: /usr/include/features.h /usr/include/sys/cdefs.h
+serveur.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+serveur.o: /usr/include/gnu/stubs-32.h /usr/include/endian.h
+serveur.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+serveur.o: /usr/include/sched.h /usr/include/bits/types.h
+serveur.o: /usr/include/bits/typesizes.h /usr/include/time.h
+serveur.o: /usr/include/bits/sched.h /usr/include/signal.h
+serveur.o: /usr/include/bits/sigset.h /usr/include/bits/pthreadtypes.h
+serveur.o: /usr/include/bits/setjmp.h /usr/include/arpa/inet.h
+serveur.o: /usr/include/netinet/in.h /usr/include/stdint.h
+serveur.o: /usr/include/bits/wchar.h /usr/include/sys/socket.h
+serveur.o: /usr/include/sys/uio.h /usr/include/sys/types.h
+serveur.o: /usr/include/sys/select.h /usr/include/bits/select.h
+serveur.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+serveur.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+serveur.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+serveur.o: /usr/include/asm/sockios.h /usr/include/bits/in.h global.h
+serveur.o: configuration.h requete.h sendrecv.h /usr/include/stdlib.h
+serveur.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
+serveur.o: /usr/include/xlocale.h /usr/include/alloca.h /usr/include/stdio.h
+serveur.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+serveur.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+serveur.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
+serveur.o: /usr/include/bits/environments.h /usr/include/bits/confname.h
+serveur.o: /usr/include/getopt.h /usr/include/string.h /usr/include/locale.h
+serveur.o: /usr/include/bits/locale.h /usr/include/errno.h
+serveur.o: /usr/include/bits/errno.h /usr/include/linux/errno.h
+serveur.o: /usr/include/asm/errno.h /usr/include/asm-generic/errno.h
+serveur.o: /usr/include/asm-generic/errno-base.h /usr/include/limits.h
+serveur.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+serveur.o: /usr/include/linux/limits.h /usr/include/bits/posix2_lim.h
+serveur.o: /usr/include/bits/xopen_lim.h /usr/include/netdb.h
+serveur.o: /usr/include/rpc/netdb.h /usr/include/bits/siginfo.h
+serveur.o: /usr/include/bits/netdb.h
+configuration.o: /usr/include/stdlib.h /usr/include/features.h
+configuration.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+configuration.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+configuration.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
+configuration.o: /usr/include/endian.h /usr/include/bits/endian.h
+configuration.o: /usr/include/bits/byteswap.h /usr/include/xlocale.h
+configuration.o: /usr/include/sys/types.h /usr/include/bits/types.h
+configuration.o: /usr/include/bits/typesizes.h /usr/include/time.h
+configuration.o: /usr/include/sys/select.h /usr/include/bits/select.h
+configuration.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+configuration.o: /usr/include/sys/sysmacros.h
+configuration.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+configuration.o: /usr/include/stdio.h /usr/include/libio.h
+configuration.o: /usr/include/_G_config.h /usr/include/wchar.h
+configuration.o: /usr/include/bits/stdio_lim.h
+configuration.o: /usr/include/bits/sys_errlist.h /usr/include/unistd.h
+configuration.o: /usr/include/bits/posix_opt.h
+configuration.o: /usr/include/bits/environments.h
+configuration.o: /usr/include/bits/confname.h /usr/include/getopt.h
+configuration.o: /usr/include/string.h /usr/include/netdb.h
+configuration.o: /usr/include/netinet/in.h /usr/include/stdint.h
+configuration.o: /usr/include/bits/wchar.h /usr/include/sys/socket.h
+configuration.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+configuration.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+configuration.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+configuration.o: /usr/include/bits/in.h /usr/include/rpc/netdb.h
+configuration.o: /usr/include/bits/siginfo.h /usr/include/bits/netdb.h
+configuration.o: /usr/include/errno.h /usr/include/bits/errno.h
+configuration.o: /usr/include/linux/errno.h /usr/include/asm/errno.h
+configuration.o: /usr/include/asm-generic/errno.h
+configuration.o: /usr/include/asm-generic/errno-base.h
+configuration.o: /usr/include/sys/stat.h /usr/include/bits/stat.h
+configuration.o: /usr/include/fcntl.h /usr/include/bits/fcntl.h global.h
+configuration.o: buffer.h memoire.h configuration.h
+encode.o: /usr/include/stdio.h /usr/include/features.h
+encode.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+encode.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+encode.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+encode.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+encode.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+encode.o: /usr/include/string.h /usr/include/xlocale.h /usr/include/time.h
+encode.o: encode.h buffer.h memoire.h requete.h client.h
+encode.o: /usr/include/pthread.h /usr/include/endian.h
+encode.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+encode.o: /usr/include/sched.h /usr/include/bits/sched.h
+encode.o: /usr/include/signal.h /usr/include/bits/sigset.h
+encode.o: /usr/include/bits/pthreadtypes.h /usr/include/bits/setjmp.h
+encode.o: /usr/include/arpa/inet.h /usr/include/netinet/in.h
+encode.o: /usr/include/stdint.h /usr/include/bits/wchar.h
+encode.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+encode.o: /usr/include/sys/types.h /usr/include/sys/select.h
+encode.o: /usr/include/bits/select.h /usr/include/bits/time.h
+encode.o: /usr/include/sys/sysmacros.h /usr/include/bits/uio.h
+encode.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+encode.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+encode.o: /usr/include/bits/in.h global.h
+decode.o: /usr/include/stdio.h /usr/include/features.h
+decode.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+decode.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+decode.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+decode.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+decode.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+decode.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
+decode.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+decode.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+decode.o: /usr/include/xlocale.h /usr/include/sys/types.h /usr/include/time.h
+decode.o: /usr/include/sys/select.h /usr/include/bits/select.h
+decode.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+decode.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
+decode.o: /usr/include/alloca.h /usr/include/string.h /usr/include/math.h
+decode.o: /usr/include/bits/huge_val.h /usr/include/bits/huge_valf.h
+decode.o: /usr/include/bits/huge_vall.h /usr/include/bits/inf.h
+decode.o: /usr/include/bits/nan.h /usr/include/bits/mathdef.h
+decode.o: /usr/include/bits/mathcalls.h decode.h buffer.h memoire.h requete.h
+decode.o: client.h /usr/include/pthread.h /usr/include/sched.h
+decode.o: /usr/include/bits/sched.h /usr/include/signal.h
+decode.o: /usr/include/bits/setjmp.h /usr/include/arpa/inet.h
+decode.o: /usr/include/netinet/in.h /usr/include/stdint.h
+decode.o: /usr/include/bits/wchar.h /usr/include/sys/socket.h
+decode.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+decode.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+decode.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+decode.o: /usr/include/bits/in.h
+makeLog.o: /usr/include/stdio.h /usr/include/features.h
+makeLog.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+makeLog.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+makeLog.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+makeLog.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+makeLog.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+makeLog.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
+makeLog.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+makeLog.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+makeLog.o: /usr/include/xlocale.h /usr/include/sys/types.h
+makeLog.o: /usr/include/time.h /usr/include/sys/select.h
+makeLog.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+makeLog.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+makeLog.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+makeLog.o: /usr/include/string.h makeLog.h requete.h client.h buffer.h
+makeLog.o: memoire.h /usr/include/pthread.h /usr/include/sched.h
+makeLog.o: /usr/include/bits/sched.h /usr/include/signal.h
+makeLog.o: /usr/include/bits/setjmp.h /usr/include/arpa/inet.h
+makeLog.o: /usr/include/netinet/in.h /usr/include/stdint.h
+makeLog.o: /usr/include/bits/wchar.h /usr/include/sys/socket.h
+makeLog.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+makeLog.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+makeLog.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+makeLog.o: /usr/include/bits/in.h global.h
+authentification.o: /usr/include/stdlib.h /usr/include/features.h
+authentification.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+authentification.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+authentification.o: /usr/include/bits/waitflags.h
+authentification.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+authentification.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+authentification.o: /usr/include/xlocale.h /usr/include/sys/types.h
+authentification.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+authentification.o: /usr/include/time.h /usr/include/sys/select.h
+authentification.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+authentification.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+authentification.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+authentification.o: /usr/include/stdio.h /usr/include/libio.h
+authentification.o: /usr/include/_G_config.h /usr/include/wchar.h
+authentification.o: /usr/include/bits/stdio_lim.h
+authentification.o: /usr/include/bits/sys_errlist.h /usr/include/string.h
+authentification.o: /usr/include/sys/wait.h /usr/include/signal.h
+authentification.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
+authentification.o: /usr/include/bits/siginfo.h /usr/include/unistd.h
+authentification.o: /usr/include/bits/posix_opt.h
+authentification.o: /usr/include/bits/environments.h
+authentification.o: /usr/include/bits/confname.h /usr/include/getopt.h
+authentification.o: authentification.h global.h buffer.h memoire.h
+getContentType.o: getContentType.h requete.h client.h buffer.h memoire.h
+getContentType.o: /usr/include/pthread.h /usr/include/features.h
+getContentType.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+getContentType.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+getContentType.o: /usr/include/endian.h /usr/include/bits/endian.h
+getContentType.o: /usr/include/bits/byteswap.h /usr/include/sched.h
+getContentType.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+getContentType.o: /usr/include/time.h /usr/include/bits/sched.h
+getContentType.o: /usr/include/signal.h /usr/include/bits/sigset.h
+getContentType.o: /usr/include/bits/pthreadtypes.h /usr/include/bits/setjmp.h
+getContentType.o: /usr/include/arpa/inet.h /usr/include/netinet/in.h
+getContentType.o: /usr/include/stdint.h /usr/include/bits/wchar.h
+getContentType.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+getContentType.o: /usr/include/sys/types.h /usr/include/sys/select.h
+getContentType.o: /usr/include/bits/select.h /usr/include/bits/time.h
+getContentType.o: /usr/include/sys/sysmacros.h /usr/include/bits/uio.h
+getContentType.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+getContentType.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+getContentType.o: /usr/include/bits/in.h global.h /usr/include/sys/stat.h
+getContentType.o: /usr/include/bits/stat.h /usr/include/unistd.h
+getContentType.o: /usr/include/bits/posix_opt.h
+getContentType.o: /usr/include/bits/environments.h
+getContentType.o: /usr/include/bits/confname.h /usr/include/getopt.h
+getContentType.o: /usr/include/stdio.h /usr/include/libio.h
+getContentType.o: /usr/include/_G_config.h /usr/include/wchar.h
+getContentType.o: /usr/include/bits/stdio_lim.h
+getContentType.o: /usr/include/bits/sys_errlist.h /usr/include/stdlib.h
+getContentType.o: /usr/include/bits/waitflags.h
+getContentType.o: /usr/include/bits/waitstatus.h /usr/include/xlocale.h
+getContentType.o: /usr/include/alloca.h /usr/include/string.h
+requete.o: global.h buffer.h memoire.h requete.h client.h
+requete.o: /usr/include/pthread.h /usr/include/features.h
+requete.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+requete.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+requete.o: /usr/include/endian.h /usr/include/bits/endian.h
+requete.o: /usr/include/bits/byteswap.h /usr/include/sched.h
+requete.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+requete.o: /usr/include/time.h /usr/include/bits/sched.h
+requete.o: /usr/include/signal.h /usr/include/bits/sigset.h
+requete.o: /usr/include/bits/pthreadtypes.h /usr/include/bits/setjmp.h
+requete.o: /usr/include/arpa/inet.h /usr/include/netinet/in.h
+requete.o: /usr/include/stdint.h /usr/include/bits/wchar.h
+requete.o: /usr/include/sys/socket.h /usr/include/sys/uio.h
+requete.o: /usr/include/sys/types.h /usr/include/sys/select.h
+requete.o: /usr/include/bits/select.h /usr/include/bits/time.h
+requete.o: /usr/include/sys/sysmacros.h /usr/include/bits/uio.h
+requete.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+requete.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+requete.o: /usr/include/bits/in.h sendrecv.h getContentType.h
+requete.o: /usr/include/sys/stat.h /usr/include/bits/stat.h
+requete.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
+requete.o: /usr/include/bits/environments.h /usr/include/bits/confname.h
+requete.o: /usr/include/getopt.h authentification.h makeLog.h decode.h
+requete.o: encode.h /usr/include/stdlib.h /usr/include/bits/waitflags.h
+requete.o: /usr/include/bits/waitstatus.h /usr/include/xlocale.h
+requete.o: /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h
+requete.o: /usr/include/_G_config.h /usr/include/wchar.h
+requete.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+requete.o: /usr/include/string.h /usr/include/assert.h /usr/include/limits.h
+requete.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
+requete.o: /usr/include/linux/limits.h /usr/include/bits/posix2_lim.h
+requete.o: /usr/include/bits/xopen_lim.h
+memoire.o: /usr/include/stdio.h /usr/include/features.h
+memoire.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+memoire.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+memoire.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+memoire.o: /usr/include/libio.h /usr/include/_G_config.h /usr/include/wchar.h
+memoire.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+memoire.o: /usr/include/stdlib.h /usr/include/bits/waitflags.h
+memoire.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+memoire.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+memoire.o: /usr/include/xlocale.h /usr/include/sys/types.h
+memoire.o: /usr/include/time.h /usr/include/sys/select.h
+memoire.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+memoire.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+memoire.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h memoire.h
+buffer.o: /usr/include/stdlib.h /usr/include/features.h
+buffer.o: /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h
+buffer.o: /usr/include/gnu/stubs.h /usr/include/gnu/stubs-32.h
+buffer.o: /usr/include/bits/waitflags.h /usr/include/bits/waitstatus.h
+buffer.o: /usr/include/endian.h /usr/include/bits/endian.h
+buffer.o: /usr/include/bits/byteswap.h /usr/include/xlocale.h
+buffer.o: /usr/include/sys/types.h /usr/include/bits/types.h
+buffer.o: /usr/include/bits/typesizes.h /usr/include/time.h
+buffer.o: /usr/include/sys/select.h /usr/include/bits/select.h
+buffer.o: /usr/include/bits/sigset.h /usr/include/bits/time.h
+buffer.o: /usr/include/sys/sysmacros.h /usr/include/bits/pthreadtypes.h
+buffer.o: /usr/include/alloca.h /usr/include/stdio.h /usr/include/libio.h
+buffer.o: /usr/include/_G_config.h /usr/include/wchar.h
+buffer.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+buffer.o: /usr/include/string.h /usr/include/assert.h buffer.h memoire.h
+sendrecv.o: global.h buffer.h memoire.h sendrecv.h /usr/include/stdlib.h
+sendrecv.o: /usr/include/features.h /usr/include/sys/cdefs.h
+sendrecv.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+sendrecv.o: /usr/include/gnu/stubs-32.h /usr/include/bits/waitflags.h
+sendrecv.o: /usr/include/bits/waitstatus.h /usr/include/endian.h
+sendrecv.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+sendrecv.o: /usr/include/xlocale.h /usr/include/sys/types.h
+sendrecv.o: /usr/include/bits/types.h /usr/include/bits/typesizes.h
+sendrecv.o: /usr/include/time.h /usr/include/sys/select.h
+sendrecv.o: /usr/include/bits/select.h /usr/include/bits/sigset.h
+sendrecv.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+sendrecv.o: /usr/include/bits/pthreadtypes.h /usr/include/alloca.h
+sendrecv.o: /usr/include/stdio.h /usr/include/libio.h
+sendrecv.o: /usr/include/_G_config.h /usr/include/wchar.h
+sendrecv.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
+sendrecv.o: /usr/include/assert.h /usr/include/dirent.h
+sendrecv.o: /usr/include/bits/dirent.h /usr/include/bits/posix1_lim.h
+sendrecv.o: /usr/include/bits/local_lim.h /usr/include/linux/limits.h
+sendrecv.o: /usr/include/string.h /usr/include/sys/socket.h
+sendrecv.o: /usr/include/sys/uio.h /usr/include/bits/uio.h
+sendrecv.o: /usr/include/bits/socket.h /usr/include/bits/sockaddr.h
+sendrecv.o: /usr/include/asm/socket.h /usr/include/asm/sockios.h
+sendrecv.o: /usr/include/errno.h /usr/include/bits/errno.h
+sendrecv.o: /usr/include/linux/errno.h /usr/include/asm/errno.h
+sendrecv.o: /usr/include/asm-generic/errno.h
+sendrecv.o: /usr/include/asm-generic/errno-base.h /usr/include/unistd.h
+sendrecv.o: /usr/include/bits/posix_opt.h /usr/include/bits/environments.h
+sendrecv.o: /usr/include/bits/confname.h /usr/include/getopt.h
+sendrecv.o: /usr/include/sys/wait.h /usr/include/signal.h
+sendrecv.o: /usr/include/sys/resource.h /usr/include/bits/resource.h
+sendrecv.o: /usr/include/bits/siginfo.h
+client.o: client.h buffer.h memoire.h /usr/include/pthread.h
+client.o: /usr/include/features.h /usr/include/sys/cdefs.h
+client.o: /usr/include/bits/wordsize.h /usr/include/gnu/stubs.h
+client.o: /usr/include/gnu/stubs-32.h /usr/include/endian.h
+client.o: /usr/include/bits/endian.h /usr/include/bits/byteswap.h
+client.o: /usr/include/sched.h /usr/include/bits/types.h
+client.o: /usr/include/bits/typesizes.h /usr/include/time.h
+client.o: /usr/include/bits/sched.h /usr/include/signal.h
+client.o: /usr/include/bits/sigset.h /usr/include/bits/pthreadtypes.h
+client.o: /usr/include/bits/setjmp.h /usr/include/arpa/inet.h
+client.o: /usr/include/netinet/in.h /usr/include/stdint.h
+client.o: /usr/include/bits/wchar.h /usr/include/sys/socket.h
+client.o: /usr/include/sys/uio.h /usr/include/sys/types.h
+client.o: /usr/include/sys/select.h /usr/include/bits/select.h
+client.o: /usr/include/bits/time.h /usr/include/sys/sysmacros.h
+client.o: /usr/include/bits/uio.h /usr/include/bits/socket.h
+client.o: /usr/include/bits/sockaddr.h /usr/include/asm/socket.h
+client.o: /usr/include/asm/sockios.h /usr/include/bits/in.h global.h
+client.o: /usr/include/stdio.h /usr/include/libio.h /usr/include/_G_config.h
+client.o: /usr/include/wchar.h /usr/include/bits/stdio_lim.h
+client.o: /usr/include/bits/sys_errlist.h /usr/include/netdb.h
+client.o: /usr/include/rpc/netdb.h /usr/include/bits/siginfo.h
+client.o: /usr/include/bits/netdb.h /usr/include/unistd.h
+client.o: /usr/include/bits/posix_opt.h /usr/include/bits/environments.h
+client.o: /usr/include/bits/confname.h /usr/include/getopt.h
+client.o: /usr/include/string.h /usr/include/xlocale.h

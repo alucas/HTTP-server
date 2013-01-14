@@ -1,0 +1,31 @@
+PREFIX=.
+
+INCDIR = $(PREFIX)
+LIBDIR = $(PREFIX)
+BINDIR = $(PREFIX)
+
+CC= gcc
+CFLAGS= -std=c99 -g -Wall -O3 -D_REENTRANT -DNDEBUG
+CPPFLAGS= -I $(INCDIR)
+LDFLAGS= -L $(LIBDIR)
+LDLIBS= -lm -lpthread -lcurses
+LIBFILENAME= 
+INSTHEADERS= 
+LIBOBJS= 
+OUTFILE= lina
+OBJS= $(LIBOBJS) serveur.o configuration.o encode.o decode.o makeLog.o authentification.o getContentType.o requete.o memoire.o buffer.o sendrecv.o client.o
+SRCS= serveur.c configuration.c encode.c decode.c makeLog.c authentification.c getContentType.c requete.c memoire.c buffer.c sendrecv.c client.c
+
+all: $(OBJS)
+	$(CC) $(LDFLAGS) $(OBJS) $(LDLIBS) -o $(OUTFILE)
+
+clean :
+	rm -f  $(OUTFILE) $(OBJS)
+	rm -f *~
+
+depend:
+	makedepend -- $(CFLAGS) -- $(SRCS)
+
+
+# DO NOT DELETE
+

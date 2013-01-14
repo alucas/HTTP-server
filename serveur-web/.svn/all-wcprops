@@ -1,0 +1,167 @@
+K 25
+svn:wc:ra_dav:version-url
+V 23
+/svn/!svn/ver/172/trunk
+END
+authentification.c
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/167/trunk/authentification.c
+END
+encode.h
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/164/trunk/encode.h
+END
+memoire.h
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/64/trunk/memoire.h
+END
+authentification.h
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/155/trunk/authentification.h
+END
+global.h
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/109/trunk/global.h
+END
+configuration.c
+K 25
+svn:wc:ra_dav:version-url
+V 39
+/svn/!svn/ver/109/trunk/configuration.c
+END
+mime.types
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/50/trunk/mime.types
+END
+sendrecv.c
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/172/trunk/sendrecv.c
+END
+buffer.c
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/100/trunk/buffer.c
+END
+requete.c
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/173/trunk/requete.c
+END
+configuration.h
+K 25
+svn:wc:ra_dav:version-url
+V 38
+/svn/!svn/ver/39/trunk/configuration.h
+END
+getContentType.c
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/167/trunk/getContentType.c
+END
+client.c
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/173/trunk/client.c
+END
+sendrecv.h
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/122/trunk/sendrecv.h
+END
+buffer.h
+K 25
+svn:wc:ra_dav:version-url
+V 31
+/svn/!svn/ver/98/trunk/buffer.h
+END
+global.tex
+K 25
+svn:wc:ra_dav:version-url
+V 34
+/svn/!svn/ver/165/trunk/global.tex
+END
+requete.h
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/170/trunk/requete.h
+END
+makeLog.c
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/148/trunk/makeLog.c
+END
+getContentType.h
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/166/trunk/getContentType.h
+END
+client.h
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/152/trunk/client.h
+END
+decode.c
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/170/trunk/decode.c
+END
+makeLog.h
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/148/trunk/makeLog.h
+END
+decode.h
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/150/trunk/decode.h
+END
+serveur.c
+K 25
+svn:wc:ra_dav:version-url
+V 33
+/svn/!svn/ver/173/trunk/serveur.c
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/173/trunk/Makefile
+END
+memoire.c
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/76/trunk/memoire.c
+END
+encode.c
+K 25
+svn:wc:ra_dav:version-url
+V 32
+/svn/!svn/ver/164/trunk/encode.c
+END

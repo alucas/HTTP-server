@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 35
+/svn/!svn/ver/153/trunk/www/cgi-bin
+END
+script
+K 25
+svn:wc:ra_dav:version-url
+V 42
+/svn/!svn/ver/142/trunk/www/cgi-bin/script
+END
+script2
+K 25
+svn:wc:ra_dav:version-url
+V 43
+/svn/!svn/ver/153/trunk/www/cgi-bin/script2
+END

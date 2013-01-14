@@ -1,0 +1,8014 @@
+%!PS-Adobe-3.0
+%%Title: authentification.c, buffer.c, client.c, configuration.c, decode.c, encode.c, getContentType.c, makeLog.c, memoire.c, requete.c
+%%For: Antoine Lucas
+%%Creator: a2ps version 4.14
+%%CreationDate: Thu Dec 10 14:12:33 2009
+%%BoundingBox: 24 24 571 818
+%%DocumentData: Clean7Bit
+%%Orientation: Landscape
+%%Pages: 30
+%%PageOrder: Ascend
+%%DocumentMedia: A4 595 842 0 () ()
+%%DocumentNeededResources: font Courier
+%%+ font Courier-Bold
+%%+ font Courier-BoldOblique
+%%+ font Courier-Oblique
+%%+ font Helvetica
+%%+ font Helvetica-Bold
+%%+ font Symbol
+%%+ font Times-Bold
+%%+ font Times-Roman
+%%DocumentProcessColors: Black 
+%%DocumentSuppliedResources: procset a2ps-a2ps-hdr
+%%+ procset a2ps-black+white-Prolog
+%%+ encoding ISO-8859-1Encoding
+%%EndComments
+/a2psdict 200 dict def
+a2psdict begin
+%%BeginProlog
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Check PostScript language level.
+/languagelevel where {
+  pop /gs_languagelevel languagelevel def
+} {
+  /gs_languagelevel 1 def
+} ifelse
+
+% EPSF import as in the Red Book
+/BeginInclude {
+  /b4_Inc_state save def    		% Save state for cleanup
+  /dict_count countdictstack def	% Count objects on dict stack
+  /op_count count 1 sub def		% Count objects on operand stack 
+  userdict begin
+    0 setgray 0 setlinecap
+    1 setlinewidth 0 setlinejoin
+    10 setmiterlimit [ ] 0 setdash newpath
+    gs_languagelevel 1 ne {
+      false setstrokeadjust false setoverprint 
+    } if
+} bind def
+
+/EndInclude {
+  count op_count sub { pos } repeat	% Clean up stacks
+  countdictstack dict_count sub { end } repeat
+  b4_Inc_state restore
+} bind def
+
+/BeginEPSF {
+  BeginInclude
+  /showpage { } def
+} bind def
+
+/EndEPSF {
+  EndInclude
+} bind def
+
+% Page prefeed
+/page_prefeed {         % bool -> -
+  statusdict /prefeed known {
+    statusdict exch /prefeed exch put
+  } {
+    pop
+  } ifelse
+} bind def
+
+/deffont {
+  findfont exch scalefont def
+} bind def
+
+/reencode_font {
+  findfont reencode 2 copy definefont pop def
+} bind def
+
+% Function c-show (str => -)
+% centers text only according to x axis.
+/c-show { 
+  dup stringwidth pop
+  2 div neg 0 rmoveto
+  show
+} bind def
+
+% Function l-show (str => -)
+% prints texts so that it ends at currentpoint
+/l-show {
+  dup stringwidth pop neg 
+  0 
+  rmoveto show
+} bind def
+
+% center-fit show (str w => -)
+% show centered, and scale currentfont so that the width is less than w
+/cfshow {
+  exch dup stringwidth pop
+  % If the title is too big, try to make it smaller
+  3 2 roll 2 copy
+  gt
+  { % if, i.e. too big
+    exch div
+    currentfont exch scalefont setfont
+  } { % ifelse
+    pop pop 
+  }
+  ifelse
+  c-show			% center title
+} bind def
+
+% Return the y size of the current font
+% - => fontsize
+/currentfontsize {
+  currentfont /FontType get 0 eq {
+    currentfont /FontMatrix get 3 get
+  }{
+    currentfont /FontMatrix get 3 get 1000 mul
+  } ifelse
+} bind def
+
+% reencode the font
+% <encoding-vector> <fontdict> -> <newfontdict>
+/reencode { %def
+  dup length 5 add dict begin
+    { %forall
+      % <vector> <key> <val>
+      1 index /FID ne 
+      { def }{ pop pop } ifelse
+    } forall
+    /Encoding exch def % -
+
+    % Use the font's bounding box to determine the ascent, descent,
+    % and overall height; don't forget that these values have to be
+    % transformed using the font's matrix.
+    % We use `load' because sometimes BBox is executable, sometimes not.
+    % Since we need 4 numbers an not an array avoid BBox from being executed
+    /FontBBox load aload pop
+    FontMatrix transform /Ascent exch def pop
+    FontMatrix transform /Descent exch def pop
+    /FontHeight Ascent Descent sub def
+
+    % Get the underline position and thickness if they're defined.
+    % Use 1 if they are not defined.
+    currentdict /FontInfo 2 copy known
+    { get
+      /UnderlinePosition 2 copy % <FontInfo> /UP <FontInfo> /UP
+      2 copy known
+      { get }{ pop pop 1 } ifelse
+      0 exch FontMatrix transform exch pop
+      def % <FontInfo>
+
+      /UnderlineThickness 2 copy % <FontInfo> /UT <FontInfo> /UT
+      2 copy known
+      { get }{ pop pop 1 } ifelse
+      0 exch FontMatrix transform exch pop
+      def % <FontInfo>
+      pop % -
+    }{ pop pop
+    } ifelse
+
+    currentdict
+  end 
+} bind def
+
+% composite fonts for ASCII-EUC mixed strings
+% Version 1.2 1/31/1990
+% Original Ken'ichi HANDA (handa@etl.go.jp)
+% Modified Norio Katayama (katayama@rd.nacsis.ac.jp),1998
+% Extend & Fix Koji Nakamaru (maru@on.cs.keio.ac.jp), 1999
+% Anyone can freely copy, modify, distribute this program.
+
+/copyfont {	% font-dic extra-entry-count  copyfont  font-dic
+	1 index maxlength add dict begin
+	{	1 index /FID ne 2 index /UniqueID ne and
+		{def} {pop pop} ifelse
+	} forall
+	currentdict
+	end
+} bind def
+
+/compositefont { % ASCIIFontName EUCFontName RomanScale RomanOffset Rot(T/F) compositefont font
+    /RomanRotation exch def
+    /RomanOffset exch def
+    /RomanScale exch def
+    userdict /fixeucfont_dict known not {
+	userdict begin
+	    /fixeucfont_dict 2 dict begin
+		/UpperByteEncoding [
+		    16#00 1 16#20 { pop 0 } for
+		    16#21 1 16#28 { 16#20 sub } for
+		    16#29 1 16#2F { pop 0 } for
+		    16#30 1 16#74 { 16#27 sub } for
+		    16#75 1 16#FF { pop 0 } for
+		] def
+	        /LowerByteEncoding [
+		    16#00 1 16#A0 { pop /.notdef } for
+		    16#A1 1 16#FE { 16#80 sub 16 2 string cvrs
+				    (cXX) dup 1 4 -1 roll
+				    putinterval cvn } for
+		    /.notdef
+		] def
+		currentdict
+	    end def
+	end
+    } if
+    findfont dup /FontType get 0 eq {
+	14 dict begin
+	    %
+	    % 7+8 bit EUC font
+	    %
+	    12 dict begin
+		/EUCFont exch def
+		/FontInfo (7+8 bit EUC font) readonly def
+		/PaintType 0 def
+		/FontType 0 def
+		/FontMatrix matrix def
+		% /FontName
+		/Encoding fixeucfont_dict /UpperByteEncoding get def
+		/FMapType 2 def
+		EUCFont /WMode known
+		{ EUCFont /WMode get /WMode exch def }
+		{ /WMode 0 def } ifelse
+		/FDepVector [
+		    EUCFont /FDepVector get 0 get
+		    [ 16#21 1 16#28 {} for 16#30 1 16#74 {} for ]
+		    {
+			13 dict begin
+			    /EUCFont EUCFont def
+			    /UpperByte exch 16#80 add def	
+			    % /FontName
+			    /FontInfo (EUC lower byte font) readonly def
+			    /PaintType 0 def
+			    /FontType 3 def
+			    /FontMatrix matrix def
+			    /FontBBox {0 0 0 0} def
+			    /Encoding
+				fixeucfont_dict /LowerByteEncoding get def
+			    % /UniqueID
+			    % /WMode
+			    /BuildChar {
+				gsave
+				exch dup /EUCFont get setfont
+				/UpperByte get
+				2 string
+				dup 0 4 -1 roll put
+				dup 1 4 -1 roll put
+				dup stringwidth setcharwidth
+				0 0 moveto show
+				grestore
+			    } bind def
+			    currentdict
+			end
+			/lowerbytefont exch definefont
+		    } forall
+		] def
+		currentdict
+	    end
+	    /eucfont exch definefont
+	    exch
+	    findfont 1 copyfont dup begin
+		RomanRotation {
+			/FontMatrix FontMatrix
+			[ 0 RomanScale neg RomanScale 0 RomanOffset neg 0 ]
+			matrix concatmatrix def
+		}{
+			/FontMatrix FontMatrix
+			[ RomanScale 0 0 RomanScale 0 RomanOffset ] matrix concatmatrix
+			def
+			/CDevProc
+			    {pop pop pop pop 0 exch -1000 exch 2 div 880} def
+		} ifelse
+	    end
+	    /asciifont exch definefont
+	    exch
+	    /FDepVector [ 4 2 roll ] def
+	    /FontType 0 def
+	    /WMode 0 def
+	    /FMapType 4 def
+	    /FontMatrix matrix def
+	    /Encoding [0 1] def
+	    /FontBBox {0 0 0 0} def
+%	    /FontHeight 1.0 def % XXXX
+	    /FontHeight RomanScale 1.0 ge { RomanScale }{ 1.0 } ifelse def
+	    /Descent -0.3 def   % XXXX
+	    currentdict
+	end
+	/tmpfont exch definefont
+	pop
+	/tmpfont findfont
+    }{
+	pop findfont 0 copyfont
+    } ifelse
+} def	
+
+/slantfont {	% FontName slant-degree  slantfont  font'
+    exch findfont 1 copyfont begin
+    [ 1 0 4 -1 roll 1 0 0 ] FontMatrix exch matrix concatmatrix
+    /FontMatrix exch def
+    currentdict
+    end
+} def
+
+% Function print line number (<string> # -)
+/# {
+  gsave
+    sx cw mul neg 2 div 0 rmoveto
+    f# setfont
+    c-show
+  grestore
+} bind def
+
+% -------- Some routines to enlight plain b/w printings ---------
+
+% Underline
+% width --
+/dounderline {
+  currentpoint
+  gsave
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    0 rlineto
+    stroke
+  grestore
+} bind def
+
+% Underline a string
+% string --
+/dounderlinestring {
+  stringwidth pop
+  dounderline
+} bind def
+
+/UL {
+  /ul exch store
+} bind def
+
+% Draw a box of WIDTH wrt current font
+% width --
+/dobox {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    stroke
+  grestore
+} bind def
+
+/BX {
+  /bx exch store
+} bind def
+
+% Box a string
+% string --
+/doboxstring {
+  stringwidth pop
+  dobox
+} bind def
+
+%
+% ------------- Color routines ---------------
+%
+/FG /setrgbcolor load def
+
+% Draw the background
+% width --
+/dobackground {
+  currentpoint
+  gsave
+    newpath
+    moveto
+    0 currentfont /Descent get currentfontsize mul rmoveto
+    dup 0 rlineto
+    0 currentfont /FontHeight get currentfontsize mul rlineto
+    neg 0 rlineto
+    closepath
+    bgcolor aload pop setrgbcolor
+    fill
+  grestore
+} bind def
+
+% Draw bg for a string
+% string --
+/dobackgroundstring {
+  stringwidth pop
+  dobackground
+} bind def
+
+
+/BG {
+  dup /bg exch store
+  { mark 4 1 roll ] /bgcolor exch store } if
+} bind def
+
+
+/Show {
+  bg { dup dobackgroundstring } if
+  ul { dup dounderlinestring } if
+  bx { dup doboxstring } if
+  show
+} bind def
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T {
+  cw mul x0 add
+  bg { dup currentpoint pop sub dobackground } if
+  ul { dup currentpoint pop sub dounderline } if
+  bx { dup currentpoint pop sub dobox } if
+  y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n {
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+/S {
+  Show
+} bind def
+
+%%BeginResource: procset a2ps-a2ps-hdr 2.0 2
+%%Copyright: (c) 1988, 89, 90, 91, 92, 93 Miguel Santana
+%%Copyright: (c) 1995, 96, 97, 98 Akim Demaille, Miguel Santana
+% Function title: prints page header.
+% <ct> <rt> <lt> are passed as argument
+/title { 
+  % 1. Draw the background
+  x v get y v get moveto
+  gsave
+    0 th 2 div neg rmoveto 
+    th setlinewidth
+    0.95 setgray
+    pw 0 rlineto stroke
+  grestore
+  % 2. Border it
+  gsave
+    0.7 setlinewidth
+    pw 0 rlineto
+    0 th neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+  % stk: ct rt lt
+  x v get y v get th sub 1 add moveto
+%%IncludeResource: font Helvetica
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  % 3. The left title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    fnfs 0.8 mul hm rmoveto
+    show			% left title
+  grestore
+  exch
+  % stk: ct ltw rt
+  % 4. the right title
+  gsave
+    dup stringwidth pop fnfs 0.8 mul add exch % leave space took on stack
+    dup
+    pw exch stringwidth pop fnfs 0.8 mul add sub
+    hm
+    rmoveto
+    show			% right title
+  grestore
+  % stk: ct ltw rtw
+  % 5. the center title
+  gsave
+    pw 3 1 roll
+    % stk: ct pw ltw rtw
+    3 copy 
+    % Move to the center of the left room
+    sub add 2 div hm rmoveto
+    % What is the available space in here?
+    add sub fnfs 0.8 mul sub fnfs 0.8 mul sub
+    % stk: ct space_left
+%%IncludeResource: font Helvetica-Bold
+  fHelvetica-Bold fnfs scalefont setfont
+    cfshow
+  grestore
+} bind def
+
+% Function border: prints virtual page border
+/border { %def
+  gsave				% print four sides
+    0 setgray
+    x v get y v get moveto
+    0.7 setlinewidth		% of the square
+    pw 0 rlineto
+    0 ph neg rlineto
+    pw neg 0 rlineto
+    closepath stroke
+  grestore
+} bind def
+
+% Function water: prints a water mark in background
+/water { %def
+  gsave
+    scx scy moveto rotate
+%%IncludeResource: font Times-Bold
+  fTimes-Bold 100 scalefont setfont
+    .97 setgray
+    dup stringwidth pop 2 div neg -50 rmoveto
+    show
+  grestore
+} bind def
+
+% Function rhead: prints the right header
+/rhead {  %def
+  lx ly moveto
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  l-show
+} bind def
+
+% Function footer (cf rf lf -> -)
+/footer {
+  fHelvetica fnfs 0.8 mul scalefont setfont
+  dx dy moveto
+  show
+
+  snx sny moveto
+  l-show
+  
+  fnx fny moveto
+  c-show
+} bind def
+%%EndResource
+%%BeginResource: procset a2ps-black+white-Prolog 2.0 1
+
+% Function T(ab), jumps to the n-th tabulation in the current line
+/T { 
+  cw mul x0 add y0 moveto
+} bind def
+
+% Function n: move to the next line
+/n { %def
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+} bind def
+
+% Function N: show and move to the next line
+/N {
+  Show
+  /y0 y0 bfs sub store
+  x0 y0 moveto
+}  bind def
+
+/S {
+  Show
+} bind def
+
+/p {
+  false UL
+  false BX
+  fCourier bfs scalefont setfont
+  Show
+} bind def
+
+/sy {
+  false UL
+  false BX
+  fSymbol bfs scalefont setfont
+  Show
+} bind def
+
+/k {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/K {
+  false UL
+  false BX
+  fCourier-Bold bfs scalefont setfont
+  Show
+} bind def
+
+/c {
+  false UL
+  false BX
+  fCourier-Oblique bfs scalefont setfont
+  Show
+} bind def
+
+/C {
+  false UL
+  false BX
+  fCourier-BoldOblique bfs scalefont setfont
+  Show 
+} bind def
+
+/l {
+  false UL
+  false BX
+  fHelvetica bfs scalefont setfont
+  Show
+} bind def
+
+/L {
+  false UL
+  false BX
+  fHelvetica-Bold bfs scalefont setfont
+  Show 
+} bind def
+
+/str{
+  false UL
+  false BX
+  fTimes-Roman bfs scalefont setfont
+  Show
+} bind def
+
+/e{
+  false UL
+  true BX
+  fHelvetica-Bold bfs scalefont setfont
+  Show
+} bind def
+
+%%EndResource
+%%EndProlog
+%%BeginSetup
+%%IncludeResource: font Courier
+%%IncludeResource: font Courier-Oblique
+%%IncludeResource: font Courier-Bold
+%%IncludeResource: font Times-Roman
+%%IncludeResource: font Symbol
+%%IncludeResource: font Courier-BoldOblique
+%%BeginResource: encoding ISO-8859-1Encoding
+/ISO-8859-1Encoding [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /minus /period /slash 
+/zero /one /two /three /four /five /six /seven 
+/eight /nine /colon /semicolon /less /equal /greater /question 
+/at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O 
+/P /Q /R /S /T /U /V /W 
+/X /Y /Z /bracketleft /backslash /bracketright /asciicircum /underscore 
+/quoteleft /a /b /c /d /e /f /g 
+/h /i /j /k /l /m /n /o 
+/p /q /r /s /t /u /v /w 
+/x /y /z /braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen /registered /macron 
+/degree /plusminus /twosuperior /threesuperior /acute /mu /paragraph /bullet 
+/cedilla /onesuperior /ordmasculine /guillemotright /onequarter /onehalf /threequarters /questiondown 
+/Agrave /Aacute /Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla 
+/Egrave /Eacute /Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis 
+/Eth /Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply 
+/Oslash /Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex /idieresis 
+/eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis /divide 
+/oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn /ydieresis 
+] def
+%%EndResource
+% Initialize page description variables.
+/sh 595 def
+/sw 842 def
+/llx 24 def
+/urx 818 def
+/ury 571 def
+/lly 24 def
+/#copies 1 def
+/th 15.000000 def
+/fnfs 11 def
+/bfs 8.005733 def
+/cw 4.803440 def
+
+% Dictionary for ISO-8859-1 support
+/iso1dict 8 dict begin
+  /fCourier ISO-8859-1Encoding /Courier reencode_font
+  /fCourier-Bold ISO-8859-1Encoding /Courier-Bold reencode_font
+  /fCourier-BoldOblique ISO-8859-1Encoding /Courier-BoldOblique reencode_font
+  /fCourier-Oblique ISO-8859-1Encoding /Courier-Oblique reencode_font
+  /fHelvetica ISO-8859-1Encoding /Helvetica reencode_font
+  /fHelvetica-Bold ISO-8859-1Encoding /Helvetica-Bold reencode_font
+  /fTimes-Bold ISO-8859-1Encoding /Times-Bold reencode_font
+  /fTimes-Roman ISO-8859-1Encoding /Times-Roman reencode_font
+currentdict end def
+/bgcolor [ 0 0 0 ] def
+/bg false def
+/ul false def
+/bx false def
+% The font for line numbering
+/f# /Helvetica findfont bfs .6 mul scalefont def
+/fSymbol /Symbol findfont def
+/hm fnfs 0.25 mul def
+/pw
+   cw 81.400000 mul
+def
+/ph
+   501.959430 th add
+def
+/pmw urx llx sub pw 2 mul sub 1 div def
+/pmh 0 def
+/v 0 def
+/x [
+  0
+  dup pmw add pw add
+] def
+/y [
+  pmh ph add 0 mul ph add
+  dup
+] def
+/scx sw 2 div def
+/scy sh 2 div def
+/snx urx def
+/sny lly 2 add def
+/dx llx def
+/dy sny def
+/fnx scx def
+/fny dy def
+/lx snx def
+/ly ury fnfs 0.8 mul sub def
+/sx 0 def
+/tab 8 def
+/x0 0 def
+/y0 0 def
+%%EndSetup
+
+%%Page: (1-2) 1
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <sys/wait.h>) p n
+(#include) K
+( <sys/types.h>) p n
+(#include) K
+( <unistd.h>) p n
+() N
+(#include) K
+( ") p
+(authentification.h) str
+(") p n
+() N
+(#define) K
+( BUFFER_SIZE 1024) p n
+() N
+(/* Ecrit la partie a droite de Basic dans code,) c n
+(   Retourne 1 si un code a \303\251t\303\251 trouv\303\251 et 0 sinon */) N
+(static) K
+( ) p
+(int) k
+( getCode\() p
+(char) k
+( *p,) p
+(char) k
+( *buffer\);) p n
+(/* Decrypte le code et ecrit le resultat dans result,) c n
+(   Retourne 1 si la fonction s'est execut\303\251e sans erreur et 0 sinon */) N
+(static) K
+( ) p
+(int) k
+( decryptCode\() p
+(char) k
+( *code, ) p
+(char) k
+( *result\);) p n
+(/* Separe le login et le password lus dans result */) c n
+(static) K
+( ) p
+(void) k
+( separerLoginEtPass\() p
+(char) k
+( *result, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\);) p n
+(static) K
+( ) p
+(int) k
+( verifierIdentifiants\() p
+(char) k
+( *source, ) p
+(char) k
+( *identifiants\);) p n
+() N
+() N
+(int) k
+( getAuthorization\() p
+(char) k
+( *p, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\)) p n
+({) N
+(  ) S
+(char) k
+( code[30] = {0};) p n
+(  ) S
+(char) k
+( result[50] = {0};) p n
+() N
+(  ) S
+(if) K
+(\(!getCode\(p, code\)\){) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+() N
+(  ) S
+(if) K
+(\(!decryptCode\(code, result\)\){) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+() N
+(  separerLoginEtPass\(result, login, password\);) N
+() N
+(  ) S
+(return) K
+( 1;) p n
+(}) N
+() N
+() N
+(int) k
+( authentifier\() p
+(char) k
+( *login, ) p
+(char) k
+( *password, ) p
+(char) k
+( *pass_path\)) p n
+({) N
+(  ) S
+(FILE) k
+( *f;) p n
+(  ) S
+(char) k
+( identifiants[50] = {0};) p n
+(  ) S
+(char) k
+( fichier[BUFFER_SIZE] = {0};) p n
+(  ) S
+(int) k
+( size;) p n
+(  ) N
+(  sprintf\(identifiants,") S
+(%s:%s) str
+(",login,password\);) p n
+() N
+(  ) S
+(if) K
+(\(\(f = fopen\(pass_path,") p
+(a+) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    size = fread\(fichier,) S
+(sizeof) K
+(\() p
+(char) k
+(\),BUFFER_SIZE,f\);) p n
+() N
+(    ) S
+(do) K
+({) p n
+(      ) S
+(if) K
+(\(verifierIdentifiants\(fichier, identifiants\)\){) p n
+() S 8 T () S
+(return) K
+( 1;) p n
+(      }) N
+() N
+(      size = fread\(fichier,) S
+(sizeof) K
+(\() p
+(char) k
+(\),BUFFER_SIZE,f\);) p n
+(    }) S
+(while) K
+(\(!feof\(f\) && !ferror\(f\)\);) p n
+() N
+(    ) S
+(if) K
+(\(ferror\(f\)\){) p n
+(authentification.c) (Page 1/4) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      perror\(") p
+(fread) str
+("\);) p n
+(    }) N
+() N
+(    fclose\(f\);) N
+(  }) S
+(else) K
+({) p n
+(    perror\(") S
+(fopen) str
+("\);) p n
+(  }) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( getLoginAndPassword\() p
+(char) k
+( *p, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\)) p n
+({) N
+(  ) S
+(char) k
+( *current = p;) p n
+(  ) S
+(char) k
+( *egal = ) p
+(NULL) K
+(;) p n
+(  ) S
+(char) k
+( *et = ) p
+(NULL) K
+(;) p n
+(  ) S
+(while) K
+(\(1\){) p n
+(    egal = strchr\(current,') S
+(=) str
+('\);) p n
+(    et = strchr\(current,') S
+(&) str
+('\);) p n
+(    ) S
+(if) K
+(\(!strncmp\(current,") p
+(login) str
+(",5\)\){) p n
+(      strncpy\(login, egal+1, strlen\(et\) - strlen\(egal\) - 1\);) N
+(    }) S
+(else) K
+( ) p
+(if) K
+(\(!strncmp\(current,") p
+(password) str
+(",8\)\){) p n
+(      strncpy\(password, egal+1, strlen\(et\) - strlen\(egal\) - 1\);) N
+(    }) N
+(    ) S
+(if) K
+(\(et != ) p
+(NULL) K
+(\)) p n
+(      current = et+1;) N
+(    ) S
+(else) K n
+(      ) p
+(break) K
+(;) p n
+(  }  ) N
+(  ) S
+(return) K
+( strlen\(login\)*strlen\(password\);) p n
+(}) N
+() N
+(void) k
+( getPassFilePath\() p
+(char) k
+( *path, ) p
+(char) k
+( *pass_path, ) p
+(int) k
+( isDir\)) p n
+({) N
+(  ) S
+(if) K
+(\(!isDir\){) p n
+(    ) S
+(char) k
+( *pos = strrchr\(path,') p
+(/) str
+('\);) p n
+(    strncpy\(pass_path,path,strlen\(path\) - strlen\(pos\)\);) N
+(  }) S
+(else) K
+({) p n
+(    strncpy\(pass_path,path,strlen\(path\)+1\);) N
+(    strcat\(pass_path,") S
+(/) str
+("\);) p n
+(  }) N
+(  strcat\(pass_path,") S
+(.htpasswd) str
+("\);) p n
+(}) N
+() N
+(int) k
+( isInAuthDir\() p
+(char) k
+( *path\)) p n
+({) N
+(  ) S
+(return) K
+( \(strncmp\(path+gl_www.use ,") p
+(/auth) str
+(",5\) == 0\);) p n
+(}) N
+() N
+(int) k
+( passFileExistInDir\() p
+(char) k
+( *path\)) p n
+({) N
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(FILE) k
+( *f;) p n
+(  buffer_t index_path = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, path, strlen\(path\)\);) p n
+(  bufstrcat\(&index_path,") S
+(/.htpasswd) str
+(",10\);) p n
+(  ) S
+(if) K
+(\(\(f = fopen\(index_path.ptr,") p
+(r) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    fclose\(f\);) N
+(    i = 1;) N
+(  }) N
+(  bufkill\(&index_path\);) N
+(  ) S
+(return) K
+( i; ) p n
+(}) N
+() N
+(authentification.c) (Page 2/4) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(authentification.c) (1/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 2
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(static) K
+( ) p
+(int) k
+( getCode\() p
+(char) k
+( *p,) p
+(char) k
+( *buffer\)) p n
+({) N
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(while) K
+(\(p[i] != ') p
+(\\0) str
+('\){) p n
+(    ) S
+(if) K
+(\(p[i] != ') p
+( ) str
+('\){) p n
+(      ) S
+(if) K
+(\(!strncmp\(&p[i],") p
+(Basic) str
+(",5\)\){) p n
+() S 8 T (i+=5;) N
+() N
+() S 8 T () S
+(while) K
+(\(p[i] == ') p
+( ) str
+(' && p[i] != ') p
+(\\0) str
+('\){) p n
+() S 8 T (  i++;) N
+() S 8 T (}) N
+() N
+() S 8 T (strncpy\(buffer,&p[i],strlen\(&p[i]\)\);) N
+(      }) N
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+(    i++;) N
+(  }) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( verifierIdentifiants\() p
+(char) k
+( *source, ) p
+(char) k
+( *identifiants\)) p n
+({) N
+(  ) S
+(char) k
+( *current = source;) p n
+(  ) S
+(char) k
+( *end_line = strchr\(source, ') p
+(\\n) str
+('\);) p n
+(  ) S
+(int) k
+( id_size = strlen\(identifiants\);) p n
+(  ) S
+(int) k
+( cur_size;) p n
+(  ) S
+(while) K
+(\(1\){) p n
+(    cur_size = end_line - current;) N
+() N
+(    ) S
+(if) K
+(\(id_size == cur_size\){) p n
+(      ) S
+(if) K
+(\(strncmp\(current,identifiants,cur_size-1\) == 0\){) p n
+() S 8 T () S
+(return) K
+( 1;) p n
+(      }) N
+(    }) N
+() N
+(    ) S
+(if) K
+(\(end_line == ) p
+(NULL) K
+(\)) p n
+(      ) S
+(break) K
+(;) p n
+() N
+(    current = end_line+1;) N
+(    end_line = strchr\(current, ') S
+(\\n) str
+('\);) p n
+(  }) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( decryptCode\() p
+(char) k
+( *code, ) p
+(char) k
+( *result\)) p n
+({) N
+(  ) S
+(int) k
+( in[2];) p n
+(  ) S
+(int) k
+( out[2];) p n
+() N
+(  ) S
+(if) K
+(\(pipe\(in\) == -1 || pipe\(out\) == -1\){) p n
+(    perror\(") S
+(pipe) str
+("\);) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+() N
+(  ) S
+(int) k
+( size;) p n
+(  ) S
+(if) K
+(\(\(size = write\(in[1],code,strlen\(code\)\)\) == -1\){) p n
+(    perror\(") S
+(write) str
+("\);) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+(  close\(in[1]\);) N
+() N
+(authentification.c) (Page 3/4) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  ) p
+(int) k
+( ret = fork\(\);) p n
+() N
+(  ) S
+(switch) K
+(\(ret\){) p n
+(  ) S
+(case) K
+( -1 : ) p
+(//erreur) c n
+(    perror\(") p
+(fork) str
+("\);) p n
+(    ) S
+(return) K
+( 0;) p n
+() N
+(  ) S
+(case) K
+( 0 : ) p
+(//fils) c n
+(    dup2\(in[0],STDIN_FILENO\);) p n
+(    close\(in[0]\);) N
+(    close\(out[0]\);) N
+() N
+(    dup2\(out[1],STDOUT_FILENO\);) N
+(    close\(out[1]\);) N
+() N
+(    execlp\(") S
+(base64) str
+(",") p
+(base64) str
+(",") p
+(-d) str
+(",) p
+(NULL) K
+(\);) p n
+(    perror\(") S
+(execlp) str
+("\);) p n
+(    exit\(EXIT_FAILURE\);) N
+(  }) N
+(  ) S
+(//pere) c n
+(  size = 0;) p n
+(  ) S
+(while) K
+(\(\(size = read\(out[0], result + size, 50\)\) == 0\){) p n
+(    ) S
+(if) K
+(\(size == -1\){) p n
+(      perror\(") S
+(read) str
+("\);) p n
+(      ) S
+(return) K
+( 0;) p n
+() N
+(      ) S
+(while) K
+(\(\(size = read\(out[0], result + size, 50\)\) != 0\){) p n
+() S 8 T () S
+(if) K
+(\(size == -1\){) p n
+() S 8 T (  perror\(") S
+(read) str
+("\);) p n
+() S 8 T (  ) S
+(return) K
+( 0;) p n
+() S 8 T (}) N
+(      }) N
+(    }) N
+(  }) N
+(  close\(in[0]\);) N
+(  close\(out[0]\);) N
+(  close\(out[1]\);) N
+() N
+(  waitpid\(ret,) S
+(NULL) K
+(,0\);) p n
+(  ) S
+(return) K
+( 1;) p n
+(}) N
+() N
+(static) K
+( ) p
+(void) k
+( separerLoginEtPass\() p
+(char) k
+( *result, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\)) p n
+({) N
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(while) K
+(\(result[i] != ') p
+(:) str
+('\)) p n
+(    i++;) N
+(  strncpy\(login,result,i\);) N
+(  strncpy\(password,result+i+1,strlen\(result+i+1\)\);) N
+(}) N
+(authentification.c) (Page 4/4) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(authentification.c) (2/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 3
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <assert.h>) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+() N
+(buffer_t bufinit\(buffer_t *dst, ) S
+(int) k
+( size, ) p
+(char) k
+( *str, ) p
+(int) k
+( sizeStr\){) p n
+(  ) S
+(if) K
+(\(dst == ) p
+(NULL) K
+(\){) p n
+(    buffer_t buf = {) S
+(NULL) K
+(, 0, 0};) p n
+(    dst = &buf;) N
+(  }) N
+() N
+(  ) S
+(if) K
+(\(sizeStr > size\){) p n
+(    sizeStr = size;) N
+(  }) N
+() N
+(  bufsize\(dst, size\);) N
+(  bufstrcpy\(dst, str, sizeStr\);) N
+() N
+(  ) S
+(return) K
+( *dst;) p n
+(}) N
+() N
+(int) k
+( bufsize\(buffer_t *dst, ) p
+(int) k
+( size\){) p n
+(  assert\(dst != ) S
+(NULL) K
+( && size >= 0\);) p n
+() N
+(  ) S
+(if) K
+(\(size != dst->siz\){) p n
+(    dst->ptr = memoire_reallouer\(dst->ptr, \(size+1\)*) S
+(sizeof) K
+(\() p
+(char) k
+(\)\);) p n
+(    dst->siz = size;) N
+(    ) N
+(    ) S
+(if) K
+(\(dst->use > size\){) p n
+(      dst->use = size;) N
+(    }) N
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( bufcpy\(buffer_t *dst, buffer_t *src\){) p n
+(  assert\(dst != ) S
+(NULL) K
+( && src != ) p
+(NULL) K
+( && dst->ptr != ) p
+(NULL) K
+( && src->ptr != ) p
+(NULL) K
+(\);) p n
+() N
+(  ) S
+(while) K
+(\(dst->siz < src->use\){) p n
+(    bufsize\(dst, 2*dst->siz\);) N
+(  }) N
+() N
+(  strncpy\(dst->ptr, src->ptr, src->use\);) N
+(  dst->use = src->use;) N
+(  dst->ptr[dst->use] = ') S
+(\\0) str
+(';) p n
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( bufcat\(buffer_t *dst, buffer_t *src\){) p n
+(  assert\(dst != ) S
+(NULL) K
+( && src != ) p
+(NULL) K
+( && dst->ptr != ) p
+(NULL) K
+( && src->ptr != ) p
+(NULL) K
+(\);) p n
+() N
+(  ) S
+(while) K
+(\(dst->siz < dst->use + src->use\){) p n
+(    bufsize\(dst, 2*dst->siz\);) N
+(  }) N
+() N
+(  strncat\(dst->ptr, src->ptr, src->use\);) N
+(  dst->use += src->use;) N
+(  dst->ptr[dst->use] = ') S
+(\\0) str
+(';) p n
+(buffer.c) (Page 1/2) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( bufstrcpy\(buffer_t *dst, ) p
+(char) k
+( *src, ) p
+(int) k
+( size\){) p n
+(  assert\(dst != ) S
+(NULL) K
+( && src != ) p
+(NULL) K
+(\);) p n
+() N
+(  ) S
+(while) K
+(\(dst->siz < dst->use + size\){) p n
+(    bufsize\(dst, 2*dst->siz\);) N
+(  }) N
+() N
+(  strncpy\(dst->ptr, src, size\);) N
+(  dst->use = size;) N
+(  dst->ptr[dst->use] = ') S
+(\\0) str
+(';) p n
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( bufstrcat\(buffer_t *dst, ) p
+(char) k
+( *src, ) p
+(int) k
+( size\){) p n
+(  assert\(dst != ) S
+(NULL) K
+( && src != ) p
+(NULL) K
+(\);) p n
+() N
+(  ) S
+(while) K
+(\(dst->siz < dst->use + size\){) p n
+(    bufsize\(dst, 2*dst->siz\);) N
+(  }) N
+() N
+(  strncat\(dst->ptr, src, size\);) N
+(  dst->use += size;) N
+(  dst->ptr[dst->use] = ') S
+(\\0) str
+(';) p n
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+(buffer.c) (Page 2/2) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(buffer.c) (3/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 4
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _GNU_SOURCE) p n
+() N
+(#include) K
+( ") p
+(client.h) str
+(") p n
+(#include) K
+( ") p
+(global.h) str
+(") p n
+() N
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <sys/socket.h>) p n
+(#include) K
+( <netdb.h>) p n
+(#include) K
+( <unistd.h>) p n
+(#include) K
+( <string.h>) p n
+() N
+(void) k
+( initClients\(client_t *client\){) p n
+(  client->sock = -1;) N
+(  client->serv[0] = ') S
+(\\0) str
+(';) p n
+(  client->host[0] = ') S
+(\\0) str
+(';) p n
+(  client->ip[0] = ') S
+(\\0) str
+(';) p n
+(  client->requete.ptr = ) S
+(NULL) K
+(;) p n
+(  client->requete.siz = 0;) N
+(  client->requete.use = 0;) N
+(  client->reponse.ptr = ) S
+(NULL) K
+(;) p n
+(  client->reponse.siz = 0;) N
+(  client->reponse.use = 0;) N
+(  client->path.ptr = ) S
+(NULL) K
+(;) p n
+(  client->path.siz = 0;) N
+(  client->path.use = 0;) N
+(  client->vars.ptr = ) S
+(NULL) K
+(;) p n
+(  client->vars.siz = 0;) N
+(  client->vars.use = 0;) N
+(}) N
+() N
+(void) k
+( initClientsBuffer\(client_t *client\){) p n
+(  ) S
+(if) K
+(\(!client->requete.ptr\) client->requete = bufinit\() p
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(  ) S
+(if) K
+(\(!client->reponse.ptr\) client->reponse = bufinit\() p
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(  ) S
+(if) K
+(\(!client->path.ptr\)    client->path    = bufinit\() p
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(  ) S
+(if) K
+(\(!client->vars.ptr\)    client->vars    = bufinit\() p
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(}) N
+() N
+(int) k
+( connexionClient\(client_t *client, ) p
+(int) k
+( sock\){) p n
+(  ) S
+(struct) k
+( sockaddr_in6 addr;) p n
+(  ) S
+(//struct sockaddr_in addr;) c n
+(  socklen_t sizeAddr = ) p
+(sizeof) K
+(\(addr\);) p n
+(  memset\(&addr, 0, ) S
+(sizeof) K
+(\(addr\)\);) p n
+() N
+(  client->sock = accept\(sock, \() S
+(struct) k
+( sockaddr*\)\(&addr\), &sizeAddr\);) p n
+(  ) S
+(if) K
+(\(client->sock == -1\){) p n
+(    perror\(") S
+(accept) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(if) K
+(\(0 || getnameinfo\(\() p
+(struct) k
+( sockaddr *\)\(&addr\),) p 56 T () S 64 T () S 72 T () S 80 T () N
+(\\) N
+() S 8 T () S 16 T ( sizeAddr,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T ( client->host, SIZE_HOST,) S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T ( client->serv, SIZE_SERV,) S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T ( 0\) == 0\){) N
+(    ) N
+(    printf\(") S
+(\\e[36mconnexion du client %s:%s \(socket %d\)\\e[0m\\n) str
+(",) p 72 T (\\) N
+() S 8 T (   client->host,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T (   client->serv,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T (   client->sock\);) N
+(  }) S
+(else) K
+({) p n
+(    perror\(") S
+(getnameinfo) str
+("\);) p n
+(client.c) (Page 1/2) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    printf\(") p
+(\\e[36mconnexion d'un client \(socket %d\)\\e[0m\\n) str
+(",) p 64 T (\\) N
+() S 8 T (   client->sock\);) N
+(  }) N
+() N
+(  ) S
+(if) K
+(\(inet_ntop\(addr.sin6_family, &addr.sin6_addr, client->ip, INET6_ADDRSTRLEN\) ) p n
+(== ) S
+(NULL) K
+(\){) p n
+(  ) S
+(//if\(inet_ntop\(AF_INET, &addr.sin_addr, client->ip, INET6_ADDRSTRLEN\) == NULL\)) c n
+({) N
+(    perror\(") p
+(inet_ntop) str
+("\);) p n
+(  }) N
+(  printf\(") S
+(client->ip : '%s'\\n) str
+(", client->ip\);) p n
+() N
+(  ) S
+(if) K
+(\(gl_close != 0\){) p n
+(    client->uptime = time\() S
+(NULL) K
+(\);) p n
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(void) k
+( deconnexionClient\(client_t *client\){) p n
+(  ) S
+(if) K
+(\(close\(client->sock\) != 0\){) p n
+(    perror\(") S
+(close) str
+("\);) p n
+(  }) N
+() N
+(  client->sock = -1;) N
+(  client->requete.use = 0;) N
+(}) N
+(client.c) (Page 2/2) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(client.c) (4/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 5
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _GNU_SOURCE ) p n
+() N
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <unistd.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <netdb.h>) p n
+(#include) K
+( <errno.h>) p n
+(#include) K
+( <sys/types.h>) p n
+(#include) K
+( <sys/stat.h>) p n
+(#include) K
+( <fcntl.h>) p n
+(#include) K
+( <stdbool.h>) p n
+() N
+(#include) K
+( ") p
+(global.h) str
+(") p n
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+(#include) K
+( ") p
+(configuration.h) str
+(") p n
+() N
+(#define) K
+( NB_VALUES 2 ) p
+(// doit etre >= 2 {comand, value1, ...}) c n
+(#define) K
+( NB_ALIAS 10) p n
+() N
+(// bool pour desactiver les comandes) c n
+(bool b_gl_port = false;) p n
+(bool b_gl_mode = false;) N
+(bool b_gl_close = false;) N
+(bool b_gl_www = false;) N
+() N
+(static) K
+( ) p
+(int) k
+( setComand\() p
+(char) k
+( *comand, buffer_t values[], ) p
+(int) k
+( nbValues\){) p n
+(  ) S
+(// modification du port) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(port) str
+("\)\){) p n
+(    ) S
+(if) K
+(\(b_gl_port\){) p n
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<nbValues; i++\){) p n
+(      ) S
+(// conversion numerique) c n
+(      ) p
+(char) k
+( *ptr = ) p
+(NULL) K
+(;) p n
+(      ) S
+(int) k
+( res =  strtol\(values[i].ptr, &ptr, 10\);) p n
+(      ) S
+(if) K
+(\(res > 0 && res < 65536 && ptr != values[i].ptr\){) p n
+() S 8 T (gl_port = res;) N
+() S 8 T () S
+(return) K
+( 0;) p n
+(      }) N
+(      ) N
+(      ) S
+(// resolution de nom) c n
+(      ) p
+(if) K
+(\(values[i].use >= 3\){) p n
+() S 8 T () S
+(struct) k
+( servent *serv = getservbyname\(values[i].ptr, ") p
+(tcp) str
+("\);) p n
+() S 8 T () S
+(if) K
+(\(serv != ) p
+(NULL) K
+(\){) p n
+() S 8 T (  gl_port = ntohs\(serv->s_port\);) N
+() S 8 T (  ) S
+(return) K
+( 0;) p n
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T () S
+(if) K
+(\(errno != 0\){) p n
+() S 8 T (  perror\(") S
+(getservbyname) str
+("\);) p n
+() S 8 T (}) N
+(      }) N
+(    }) N
+() N
+(    fprintf\(stderr, ") S
+(%s: valeur de la commande invalide\\n) str
+(", comand\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(// modification du mode) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(mode) str
+("\)\){) p n
+(configuration.c) (Page 1/8) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    ) p
+(if) K
+(\(b_gl_mode\){) p n
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(values[0].use == 0\){) p n
+(      fprintf\(stderr, ") S
+(%s: valeur null\\n) str
+(", comand\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(!strncmp\(values[0].ptr, ") p
+(thread) str
+(", 7\)\){) p n
+(      gl_mode = 1;) N
+(      ) S
+(return) K
+( 0;) p n
+(    }) S
+(else) K
+( ) p
+(if) K
+(\(!strncmp\(values[0].ptr, ") p
+(select) str
+(", 7\)\){) p n
+(      gl_mode = 2;) N
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    fprintf\(stderr, ") S
+(%s: valeur de la commande invalide\\n) str
+(", comand\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(// modification du temps de latence) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(latence) str
+("\)\){) p n
+(    ) S
+(if) K
+(\(b_gl_close\){) p n
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(values[0].use == 0\){) p n
+(      fprintf\(stderr, ") S
+(%s: valeur null\\n) str
+(", comand\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+() N
+(    ) S
+(char) k
+( *ptr;) p n
+(    ) S
+(int) k
+( res =  strtol\(values[0].ptr, &ptr, 10\);) p n
+(    ) S
+(if) K
+(\(res >= 0 && ptr != values[0].ptr\){) p n
+(      gl_close = res;) N
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+(    ) N
+(    fprintf\(stderr, ") S
+(%s: valeur de la commande invalide\\n) str
+(", comand\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(// modification de l'identifiant du serveur) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(server) str
+("\)\){) p n
+(    ) S
+(if) K
+(\(values[0].use == 0\){) p n
+(      fprintf\(stderr, ") S
+(%s: valeur null\\n) str
+(", comand\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(strchr\(values[0].ptr, ') p
+(:) str
+('\) != ) p
+(NULL) K
+(\){) p n
+(      fprintf\(stderr, ") S
+(le caractere ':' est interdit dans l'indentifiant du serveur\\n) str
+("\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+() N
+(    bufcpy\(&gl_name, values\);) N
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+() N
+(  ) S
+(// test des dossiers) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(rootpath) str
+("\)\){) p n
+(    ) S
+(if) K
+(\(b_gl_www\){) p n
+(configuration.c) (Page 2/8) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(configuration.c) (5/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 6
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      ) p
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(values[0].use == 0\){) p n
+(      fprintf\(stderr, ") S
+(%s: valeur null\\n) str
+(", comand\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+(    ) N
+(    ) S
+(int) k
+( rep = open\(values[0].ptr, O_DIRECTORY\);) p n
+(    ) S
+(if) K
+(\(rep != -1\){) p n
+(      close\(rep\);) N
+(      ) N
+(      bufcpy\(&gl_www, values\);) N
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    perror\(") S
+(opendir) str
+("\);) p n
+(    fprintf\(stderr, ") S
+(%s: valeur de la commande invalide\\n) str
+(", comand\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(// test des fichiers) c n
+(  ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(errorlog) str
+("\) || !strcmp\(comand, ") p
+(accesslog) str
+("\)\){) p n
+(    ) S
+(if) K
+(\(values[0].use == 0\){) p n
+(      fprintf\(stderr, ") S
+(%s: valeur null\\n) str
+(", comand\);) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+(    ) N
+(    ) S
+(int) k
+( file = open\(values[0].ptr, 0\);) p n
+(    ) S
+(if) K
+(\(file != -1\){) p n
+(      close\(file\);) N
+(      ) N
+(      ) S
+(if) K
+(\(!strcmp\(comand, ") p
+(errorlog) str
+("\)\){) p n
+() S 8 T (bufcpy\(&gl_logError, values\);) N
+(      }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(comand, ") p
+(errorlog) str
+("\)\){) p n
+() S 8 T (bufcpy\(&gl_logAccess, values\);) N
+(      }) N
+(      ) S
+(return) K
+( 0;) p n
+(    }) N
+() N
+(    perror\(") S
+(open) str
+("\);) p n
+(    fprintf\(stderr, ") S
+(%s: valeur de la commande invalide\\n) str
+(", comand\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+(  ) N
+(  fprintf\(stderr, ") S
+(\(Warning\) %s: commande inconue\\n) str
+(", comand\);) p n
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(void) k
+( usage\() p
+(char) k
+( *comand\){) p n
+(  printf\(") S
+(\\e[1musage:\\e[0m\\n) str
+(") p 32 T () S 40 T () S 48 T () S 56 T (\\) N
+() S 8 T ( ") S
+(\\t%s [-h]\\n\\n) str
+(", comand\);) p n
+(  printf\(") S
+(\\e[1moptions:\\e[0m\\n) str
+(") p 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\t-h, --help            | liste des commandes\\n) str
+(") p 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\t    --port=<port>     | port d'\303\251coute\\n) str
+(") p 56 T () S 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\t    --rootpath=<path> | racine des fichiers\\n) str
+(") p 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\t-t, --mode=thread     | mode d'execution du serveur\\n) str
+(") p 72 T (\\) N
+() S 8 T ( ") S
+(\\t-s,       =select     |\\n) str
+(") p 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\t    --latence=<temps> | temps de connexion max des clients\\n) str
+(" \\) p n
+() S 8 T ( ") S
+(\\t                      | 0 = illimit\303\251\\n) str
+(") p 56 T () S 64 T () S 72 T (\\) N
+() S 8 T ( ") S
+(\\n) str
+("\);) p n
+(}) N
+(configuration.c) (Page 3/8) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+(int) k
+( confFile\() p
+(char) k
+( *fileAddr\){) p n
+(  ) S
+(FILE) k
+( *file = fopen\(fileAddr, ") p
+(r) str
+("\);) p n
+(  ) S
+(if) K
+(\(file == ) p
+(NULL) K
+(\){) p n
+(    perror\(") S
+(fopen) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(int) k
+( size = 0;) p n
+(  buffer_t buffer = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+() N
+(  buffer_t *values = memoire_allouer\(NB_VALUES * ) S
+(sizeof) K
+(\(buffer_t\)\);) p n
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<NB_VALUES; i++\){) p n
+(    values[i] = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(  }) N
+() N
+(  ) S
+(int) k
+( nbValues = NB_VALUES;) p n
+(  ) S
+(int) k
+( valueId = 0;) p n
+(  ) S
+(int) k
+( valueCur = 0;) p n
+() N
+(  bool comentaire = false;) N
+(  bool ligneValide = true;) N
+(  bool carVide = false;) N
+(  bool phrase = false;) N
+() N
+(  ) S
+(int) k
+( ligne = 1;) p n
+(  ) S
+(int) k
+( nbErreur = 0;) p n
+() N
+(  ) S
+(while) K
+(\(\(size = fread\(buffer.ptr, ) p
+(sizeof) K
+(\() p
+(char) k
+(\), buffer.siz-1, file\)\) != 0\){) p n
+(    ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<size; i++\){) p n
+(      ) S
+(if) K
+(\(buffer.ptr[i] == ') p
+(\\n) str
+('\){) p n
+() S 8 T () S
+(// '\\0' pour la derniere valeur) c n
+() p 8 T (values[valueId].ptr[valueCur] = ') S
+(\\0) str
+(';) p n
+() S 8 T (values[valueId].use = valueCur;) N
+() S 8 T () S
+(if) K
+(\(ligneValide && valueId > 0\){) p n
+() S 8 T (  ) N
+() S 8 T (  ) S
+(/*) c n
+() S 8 T (  for\(int j=0; j<valueId+1; j++\){) N
+() S 8 T (    printf\("%s, ", values[j].ptr\);) N
+() S 8 T (  }) N
+() S 8 T (  printf\("\\n"\);) N
+() S 8 T (  // */) N
+() p n
+() S 8 T (  ) S
+(if) K
+(\(setComand\(values[0].ptr, values+1, valueId\)\){) p n
+() S 8 T (    nbErreur++;) N
+() S 8 T (    fprintf\(stderr, ") S
+(%s, ligne %d: comande invalide\\n) str
+(", fileAddr, ligne\);) p n
+() S 8 T (  }) N
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T (comentaire = false;) N
+() S 8 T (ligneValide = true;) N
+() S 8 T (carVide = false;) N
+() S 8 T (phrase = false;) N
+() N
+() S 8 T (valueCur = 0;) N
+() S 8 T (valueId = 0;) N
+() S 8 T () S
+(for) K
+(\() p
+(int) k
+( j=0; j<nbValues; j++\){) p n
+() S 8 T (  values[j].ptr[0] = ') S
+(\\0) str
+(';) p n
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T (ligne++;) N
+() N
+(configuration.c) (Page 4/8) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(configuration.c) (6/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (5-6) 7
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p 8 T () S
+(continue) K
+(;) p n
+(      }) N
+() N
+(      ) S
+(// si ce n'est pas un commentaire) c n
+(      ) p
+(if) K
+(\(!comentaire\){) p n
+() S 8 T () S
+(// caractere de commentaire) c n
+() p 8 T () S
+(if) K
+(\(buffer.ptr[i] == ') p
+(#) str
+('\){) p n
+() S 8 T (  comentaire = 1;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T () S
+(if) K
+(\(!phrase && \(buffer.ptr[i] == ') p
+( ) str
+(' || buffer.ptr[i] == ') p
+(\\t) str
+(' || buffer.pt) p n
+(r[i] == ') S
+(\\0) str
+('\)\){) p n
+() S 8 T (  carVide = true;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) N
+() N
+() S 8 T () S
+(// passer a la valeur suivante) c n
+() p 8 T () S
+(if) K
+(\(carVide && values[0].ptr[0] != ') p
+(\\0) str
+('\){) p n
+() S 8 T (  values[valueId].ptr[valueCur] = ') S
+(\\0) str
+(';) p n
+() S 8 T (  values[valueId].use = valueCur;) N
+() S 8 T (  valueId++;) N
+() S 8 T (  valueCur = 0;) N
+() S 8 T (  ) S
+(if) K
+(\(valueId == nbValues\){) p n
+() S 8 T (    nbValues *= 2;) N
+() S 8 T (    values = memoire_reallouer\(values, nbValues * ) S
+(sizeof) K
+(\(buffer_t\)\);) p n
+() S 8 T (    ) N
+() S 8 T (    ) S
+(for) K
+(\() p
+(int) k
+( j=valueId; j<nbValues; j++\){) p n
+() S 8 T (      values[i].ptr = memoire_allouer\(\(BUFFER_SIZE+1\)*) S
+(sizeof) K
+(\() p
+(char) k
+(\)\);) p n
+() S 8 T (      values[i].ptr[0] = ') S
+(\\0) str
+(';) p n
+() S 8 T (      values[i].use = 0;) N
+() S 8 T (      values[i].siz = BUFFER_SIZE;) N
+() S 8 T (    }) N
+() S 8 T (  }) N
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T (carVide = false;) N
+() N
+() S 8 T () S
+(// debut ou fin d'une chaine) c n
+() p 8 T () S
+(if) K
+(\(buffer.ptr[i] == ') p
+(") str
+('\){) p n
+() S 8 T (  phrase = !phrase;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) N
+() N
+() S 8 T () S
+(// buffer trop petit) c n
+() p 8 T () S
+(if) K
+(\(valueCur >= values[valueId].siz\){) p n
+() S 8 T (  values[valueId].ptr = memoire_reallouer\(values[valueId].ptr, \(2*values) N
+([valueId].siz+1\)*) S
+(sizeof) K
+(\() p
+(char) k
+(\)\);) p n
+() S 8 T (  values[valueId].siz *= 2;) N
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T (values[valueId].ptr[valueCur] = buffer.ptr[i];) N
+() S 8 T (valueCur++;) N
+(      }) N
+(    }) N
+(  } ) N
+(  ) N
+(  fclose\(file\);) N
+() N
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<nbValues; i++\){) p n
+(    bufkill\(values+i\);) N
+(  }) N
+(configuration.c) (Page 5/8) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  memoire_liberer\(values\);) p n
+() N
+(  bufkill\(&buffer\);) N
+() N
+(  ) S
+(return) K
+( nbErreur;) p n
+(}) N
+() N
+() N
+(int) k
+( confParams\() p
+(int) k
+( argc, ) p
+(char) k
+( *argv[]\){) p n
+(  ) S
+(int) k
+( alias[NB_ALIAS] = {0};) p n
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=1; i<argc; i++\){) p n
+(    ) S
+(if) K
+(\(argv[i][0] == ') p
+(-) str
+(' && argv[i][1] != ') p
+(\\0) str
+('\){) p n
+(      ) S
+(// traitement des alias) c n
+(      ) p
+(if) K
+(\(argv[i][1] != ') p
+(-) str
+('\){) p n
+() S 8 T () S
+(//for\(int cur=1; argv[i][cur] != '\\0'; cur++\){) c n
+() p 8 T (  ) S
+(// liste des parametre sans argument) c n
+() p 8 T () S
+(//}) c n
+() p n
+() S 8 T () S
+(if) K
+(\(argv[i][1] == ') p
+(h) str
+(' && argv[i][2] == ') p
+(\\0) str
+('\){) p n
+() S 8 T (  alias[0] = true;) N
+() S 8 T (}) N
+() N
+() S 8 T () S
+(if) K
+(\(argv[i][1] == ') p
+(t) str
+(' && argv[i][2] == ') p
+(\\0) str
+('\){) p n
+() S 8 T (  alias[1] = true;) N
+() S 8 T (}) N
+() N
+() S 8 T () S
+(if) K
+(\(argv[i][1] == ') p
+(s) str
+(' && argv[i][2] == ') p
+(\\0) str
+('\){) p n
+() S 8 T (  alias[2] = true;) N
+() S 8 T (}) N
+(      }) N
+() N
+(      ) S
+(// traitement des commandes) c n
+(      ) p
+(if) K
+(\(alias[0] || !strcmp\(argv[i]+2, ") p
+(help) str
+("\)\){) p n
+() S 8 T (usage\(argv[0]\);) N
+() S 8 T () S
+(return) K
+( 1;) p n
+(      }) N
+() N
+(      ) S
+(if) K
+(\(!strncmp\(argv[i]+2, ") p
+(port) str
+(", 4\)\){) p n
+() S 8 T () S
+(if) K
+(\(argv[i][6] == ') p
+(=) str
+('\){) p n
+() S 8 T (  argv[i] += 7;) N
+() S 8 T (  ) S
+(int) k
+( t = strlen\(argv[i]\);) p n
+() S 8 T (  buffer_t buf = {argv[i], t+1, t};) N
+() S 8 T (  ) S
+(if) K
+(\(setComand\(") p
+(port) str
+(", &buf, 1\) == 1\){) p n
+() S 8 T (    ) S
+(return) K
+( 1;) p n
+() S 8 T (  }) N
+() S 8 T (  ) N
+() S 8 T (  b_gl_port = true;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) S
+(else) K
+({) p n
+() S 8 T (  fprintf\(stderr, ") S
+(parametre obligatoire pour la commande --port\\n) str
+("\);) p n
+() S 8 T (  ) S
+(return) K
+( 1;) p n
+() S 8 T (}) N
+(      }) N
+() N
+(      ) S
+(if) K
+(\(!strncmp\(argv[i]+2, ") p
+(rootpath) str
+(", 8\)\){) p n
+() S 8 T () S
+(if) K
+(\(argv[i][10] == ') p
+(=) str
+('\){) p n
+() S 8 T (  argv[i] += 11;) N
+() S 8 T (  ) S
+(int) k
+( t = strlen\(argv[i]\);) p n
+() S 8 T (  buffer_t buf = {argv[i], t+1, t};) N
+() S 8 T (  ) S
+(if) K
+(\(setComand\(") p
+(rootpath) str
+(", &buf, 1\) == 1\){) p n
+() S 8 T (    ) S
+(return) K
+( 1;) p n
+() S 8 T (  }) N
+(configuration.c) (Page 6/8) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(configuration.c) (7/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (7-8) 8
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+() S 8 T (  b_gl_www = true;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) S
+(else) K
+({) p n
+() S 8 T (  fprintf\(stderr, ") S
+(parametre obligatoire pour la commande --roorpath\\n) str
+("\);) p n
+() S 8 T (  ) S
+(return) K
+( 1;) p n
+() S 8 T (}) N
+() S 8 T () S
+(continue) K
+(;) p n
+(      }) N
+(      ) N
+(      ) S
+(// modification du mode \(thread ou select\)) c n
+(      ) p
+(if) K
+(\(alias[1] || alias[2]\){) p n
+() S 8 T () S
+(if) K
+(\(alias[1]\){) p n
+() S 8 T (  ) S
+(char) k
+( buffer[] = ") p
+(thread) str
+(";) p n
+() S 8 T (  buffer_t buf = {buffer, ) S
+(sizeof) K
+(\(buffer\), ) p
+(sizeof) K
+(\(buffer\)-1};) p n
+() S 8 T (  setComand\(") S
+(mode) str
+(", &buf, 1\);) p n
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T () S
+(if) K
+(\(alias[2]\){) p n
+() S 8 T (  ) S
+(char) k
+( buffer[] = ") p
+(select) str
+(";) p n
+() S 8 T (  buffer_t buf = {buffer, ) S
+(sizeof) K
+(\(buffer\), ) p
+(sizeof) K
+(\(buffer\)-1};) p n
+() S 8 T (  setComand\(") S
+(mode) str
+(", &buf, 1\);) p n
+() S 8 T (}) N
+() S 8 T () N
+() S 8 T (b_gl_mode = true;) N
+() S 8 T () S
+(continue) K
+(;) p n
+(      }) N
+() N
+(      ) S
+(if) K
+(\(!strncmp\(argv[i]+2, ") p
+(mode) str
+(", 4\)\){) p n
+() S 8 T () S
+(if) K
+(\(argv[i][6] == ') p
+(=) str
+('\){) p n
+() S 8 T (  argv[i] += 7;) N
+() S 8 T (  ) S
+(int) k
+( t = strlen\(argv[i]\);) p n
+() S 8 T (  buffer_t buf = {argv[i], t+1, t};) N
+() S 8 T (  ) S
+(if) K
+(\(setComand\(") p
+(mode) str
+(", &buf, 1\) == 1\){) p n
+() S 8 T (    ) S
+(return) K
+( 1;) p n
+() S 8 T (  }) N
+() N
+() S 8 T (  b_gl_mode = true;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) S
+(else) K
+({) p n
+() S 8 T (  fprintf\(stderr, ") S
+(parametre obligatoire pour la commande --mode\\n) str
+("\);) p n
+() S 8 T (  ) S
+(return) K
+( 1;) p n
+() S 8 T (}) N
+() S 8 T () S
+(continue) K
+(;) p n
+(      }) N
+() N
+(      ) S
+(if) K
+(\(!strncmp\(argv[i]+2, ") p
+(latence) str
+(", 7\)\){) p n
+() S 8 T () S
+(if) K
+(\(argv[i][9] == ') p
+(=) str
+('\){) p n
+() S 8 T (  argv[i] += 10;) N
+() S 8 T (  ) S
+(int) k
+( t = strlen\(argv[i]\);) p n
+() S 8 T (  buffer_t buf = {argv[i], t+1, t};) N
+() S 8 T (  ) S
+(if) K
+(\(setComand\(") p
+(latence) str
+(", &buf, 1\) == 1\){) p n
+() S 8 T (    ) S
+(return) K
+( 1;) p n
+() S 8 T (  }) N
+() N
+() S 8 T (  b_gl_close = true;) N
+() S 8 T (  ) S
+(continue) K
+(;) p n
+() S 8 T (}) S
+(else) K
+({) p n
+() S 8 T (  fprintf\(stderr, ") S
+(parametre obligatoire pour la commande --latence\\n) str
+("\);) p n
+() S 8 T (  ) S
+(return) K
+( 1;) p n
+() S 8 T (}) N
+() S 8 T () S
+(continue) K
+(;) p n
+(configuration.c) (Page 7/8) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      }) p n
+(    }) N
+() N
+(    fprintf\(stderr, ") S
+(parametre %d inconu : %s\\n\\e[1mhelp:\\e[0m %s --help\\n) str
+(", i, argv[i], argv[) p n
+(0]\);) N
+(    ) S
+(return) K
+( 1;) p n
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+(configuration.c) (Page 8/8) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(configuration.c) (8/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 9
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <math.h>) p n
+() N
+(#include) K
+( ") p
+(decode.h) str
+(") p n
+() N
+(static) K
+( ) p
+(int) k
+( getMethod\() p
+(char) k
+( *buffer, ) p
+(int) k
+( *method\);) p n
+(static) K
+( ) p
+(int) k
+( getProtocol\() p
+(char) k
+( *buffer, ) p
+(int) k
+( *protocol, ) p
+(int) k
+( *keep_alive\);) p n
+(static) K
+( ) p
+(int) k
+( getEntete\() p
+(char) k
+( *buffer\);) p n
+(static) K
+( ) p
+(void) k
+( setEntete\(request_t *req, ) p
+(char) k
+( *buffer, ) p
+(int) k
+( entete, ) p
+(int) k
+( curseur\);) p n
+() N
+(/* Fonction qui convertit la chaine de caracteres en une liste de mots) c n
+(   et les rentre dans la structure de requete pass\303M-^C\302\251 en parametre */) N
+(int) k
+( decode\(buffer_t *input, request_t *req\)) p n
+({) N
+(  ) S
+(char) k
+( buffer[BUFFER_SIZE + 1];) p n
+(  ) S
+(int) k
+( mot = 0;) p n
+(  ) S
+(int) k
+( ligne = 0;) p n
+(  ) S
+(int) k
+( curseur = 0;) p n
+(  ) S
+(int) k
+( car_vide = ') p
+(\\0) str
+('; ) p
+(// sert a suprimer les espaces consecutifs) c n
+(  ) p
+(int) k
+( entete = -1;) p n
+(  ) S
+(int) k
+( ret = 0;) p n
+() N
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<input->use; i++\){) p n
+(    ) S
+(if) K
+(\(input->ptr[i] == ') p
+( ) str
+(' || input->ptr[i] == ') p
+(\\r) str
+(' || input->ptr[i] == ') p
+(\\n) str
+('\){) p n
+(      ) S
+(if) K
+(\(!car_vide\){) p n
+() S 8 T (car_vide = input->ptr[i];) N
+() S 8 T (buffer[curseur] = ') S
+(\\0) str
+(';) p n
+() N
+() S 8 T () S
+(if) K
+(\(input->ptr[i] == ') p
+(\\n) str
+('\){) p n
+() S 8 T (  entete = -1;) N
+() S 8 T (  ligne++;) N
+() S 8 T (}) N
+() N
+() S 8 T () S
+(switch) K
+(\(mot\){) p n
+() S 8 T () S
+(case) K
+( 0 :) p n
+() S 8 T (  ) S
+(if) K
+(\(\(ret = getMethod\(buffer, &req->method\)\) != 0\)) p n
+() S 8 T (    ) S
+(return) K
+( ret;) p n
+() S 8 T (  ) S
+(break) K
+(;) p n
+() N
+() S 8 T () S
+(case) K
+( 1 :) p n
+() S 8 T (  ) S
+(if) K
+(\(curseur <= BUFFER_SIZE\){) p n
+() S 8 T (    strncpy\(req->path, buffer, \(curseur+1\)*) S
+(sizeof) K
+(\() p
+(char) k
+(\)\);) p n
+() S 8 T (    ) S
+(break) K
+(;) p n
+() S 8 T (  }) N
+() S 8 T (  ) S
+(return) K
+( 414; ) p
+(// path trop long) c n
+() p n
+() S 8 T () S
+(case) K
+( 2 :) p n
+() S 8 T (  ) S
+(if) K
+(\(!getProtocol\(buffer, &req->protocol, &req->keep_alive\)\)) p n
+() S 8 T (    ) S
+(return) K
+( 0;) p n
+() S 8 T (  ) S
+(break) K
+(;) p n
+() N
+() S 8 T () S
+(default) K
+( :) p n
+() S 8 T (  ) S
+(if) K
+( \(buffer[curseur-1] == ') p
+(:) str
+('\){) p n
+() S 8 T (    entete = getEntete\(buffer\);) N
+() S 8 T (  }) S
+(else) K
+({) p n
+() S 8 T (    setEntete\(req, buffer, entete, curseur\);) N
+() S 8 T (  }) N
+() S 8 T (}) N
+() S 8 T (curseur = 0;) N
+() S 8 T (mot++;) N
+(decode.c) (Page 1/4) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      }) p
+(else) K
+({) p n
+() S 8 T () S
+(if) K
+(\(input->use - i < 3\){) p n
+() S 8 T (  fprintf\(stderr,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T (\\) N
+() S 8 T () S 16 T (  ") S
+(fin du traitement de la requete) str
+(") p 56 T () S 64 T (\\) N
+() S 8 T () S 16 T (  ") S
+(sans avoir trouv\303\251 les caracteres de fin\\n) str
+("\);) p n
+() S 8 T (  ) S
+(break) K
+(;) p n
+() S 8 T (}) N
+() S 8 T () S
+(if) K
+(\(!strncmp\(input->ptr + i - 1, ") p
+(\\r\\n\\r\\n) str
+(", 4\)\){) p n
+() S 8 T (  ) S
+(break) K
+(;) p n
+() S 8 T (}) N
+(      }) N
+(    }) S
+(else) K
+({) p n
+(      car_vide = 0;) N
+(      buffer[curseur++] = input->ptr[i];) N
+(      ) S
+(if) K
+(\(curseur > BUFFER_SIZE\){) p n
+() S 8 T (fprintf\(stderr, ") S
+(mot trop long \(size max : %d\)\\n) str
+(", BUFFER_SIZE\);) p n
+() S 8 T () S
+(return) K
+( 413; ) p
+(// mot trop long) c n
+(      }) p n
+(    }) N
+(  }) N
+(  ) S
+(if) K
+(\(mot < 2\){) p n
+(    ) S
+(return) K
+( 400;) p n
+(  }) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( getMethod\() p
+(char) k
+( *buffer, ) p
+(int) k
+( *method\)) p n
+({) N
+(  ) S
+(unsigned) k
+( ) p
+(long) k
+( ) p
+(int) k
+( sum = 0;) p n
+(  ) S
+(int) k
+( p = 0;) p n
+() N
+(  ) S
+(for) K
+(\() p
+(char) k
+( *c = buffer; \(*c\) != ') p
+(\\0) str
+('; c++\){) p n
+(    sum += \(*c-64\)*pow\(26,p\);) N
+(    p++;) N
+(  }  ) N
+(  ) S
+(switch) K
+(\(sum\){) p n
+(  ) S
+(case) K
+( 13657: ) p
+(// GET) c n
+(    *method = 1;) p n
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 71118: ) p
+(// HEAD) c n
+(    *method = 2;) p n
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 364770: ) p
+(// POST) c n
+(    *method = 3;) p n
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 1747798487: ) p
+(// OPTIONS \(le resultat du case n'est pas exact car il d\303M-^C) c n
+(\302\251passe la case\)) N
+(    ) p
+(return) K
+( 501;) p n
+(  ) S
+(case) K
+( 1921533153: ) p
+(// CONNECT \(le resultat du case n'est pas exact car il d\303M-^C) c n
+(\302\251passe la case\)) N
+(    ) p
+(return) K
+( 501;) p n
+(  ) S
+(case) K
+( 2338772: ) p
+(// TRACE) c n
+(    ) p
+(return) K
+( 501;) p n
+(  ) S
+(case) K
+( 14082: ) p
+(// PUT) c n
+(    ) p
+(return) K
+( 501;) p n
+(  ) S
+(case) K
+( 68642526: ) p
+(// DELETE) c n
+(    ) p
+(return) K
+( 501;) p n
+(  ) S
+(default) K
+(:) p n
+(    fprintf\(stderr, ") S
+(commande inconue %s\\n) str
+(", buffer\);) p n
+(    ) S
+(return) K
+( 400; ) p
+(// commande inconue) c n
+(  }) p n
+(  ) S
+(return) K
+( 0;) p n
+(decode.c) (Page 2/4) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(decode.c) (9/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 10
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(}) p n
+() N
+(static) K
+( ) p
+(int) k
+( getProtocol\() p
+(char) k
+( *buffer, ) p
+(int) k
+( *protocol, ) p
+(int) k
+( *keep_alive\)) p n
+({) N
+(  ) S
+(if) K
+(\(!strncmp\(buffer, ") p
+(HTTP/1.) str
+(", 7\) && buffer[8] == ') p
+(\\0) str
+('\){) p n
+(    ) S
+(if) K
+(\(buffer[7] == ') p
+(0) str
+('\){) p n
+(      *protocol = 1; ) S
+(// http 1.0) c n
+(      ) p
+(return) K
+( 1;) p n
+() N
+(    }) S
+(else) K
+( ) p
+(if) K
+(\(buffer[7] == ') p
+(1) str
+('\){) p n
+(      *protocol = 2; ) S
+(// http 1.1) c n
+(      *keep_alive = 1;) p n
+(      ) S
+(return) K
+( 1;) p n
+(    }) N
+(  }) N
+(  *protocol = 0; ) S
+(// http 0.9) c n
+(  ) p
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( getEntete\() p
+(char) k
+( *buffer\)) p n
+({) N
+(  ) S
+(if) K
+(       \(!strncmp\(buffer, ") p
+(User-Agent) str
+(", 10\)\){) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Host) str
+(", 4\)\){) p n
+(    ) S
+(return) K
+( 2;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Connection) str
+(", 10\)\){) p n
+(    ) S
+(return) K
+( 3;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Keep-Alive) str
+(", 10\)\){) p n
+(    ) S
+(return) K
+( 4;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Referer) str
+(", 7\)\){) p n
+(    ) S
+(return) K
+( 5;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Accept-Language) str
+(", 15\)\){) p n
+(    ) S
+(return) K
+( 6;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Accept-Encoding) str
+(", 15\)\){) p n
+(    ) S
+(return) K
+( 7;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Accept-Charset) str
+(", 14\)\){) p n
+(    ) S
+(return) K
+( 8;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Cache-Control) str
+(", 13\)\){) p n
+(    ) S
+(return) K
+( 9;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Accept) str
+(", 6\)\){) p n
+(    ) S
+(return) K
+( 10;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Authorization) str
+(", 13\)\){) p n
+(    ) S
+(return) K
+( 11;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Content-Length) str
+(", 14\)\){) p n
+(    ) S
+(return) K
+( 12;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(buffer, ") p
+(Content-Type) str
+(", 12\)\){) p n
+(    ) S
+(return) K
+( 13;) p n
+(  }) S
+(else) K
+({) p n
+(    fprintf\(stderr, ") S
+(parametre %s inconu\\n) str
+(", buffer\);) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+(}) N
+() N
+(static) K
+( ) p
+(void) k
+( setEntete\(request_t *req, ) p
+(char) k
+( *buffer, ) p
+(int) k
+( entete, ) p
+(int) k
+( curseur\)) p n
+({) N
+(  ) S
+(switch) K
+(\(entete\){) p n
+(  ) S
+(case) K
+( -1 :) p n
+(    strncpy\(req->query, buffer, curseur\);) N
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 1 :) p n
+(    ) S
+(if) K
+(\(strlen\(req->agent\) == 0\){) p n
+(      strncpy\(req->agent, buffer, curseur\);) N
+(decode.c) (Page 3/4) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    }) p
+(else) K
+({) p n
+(      strncat\(req->agent, ") S
+( ) str
+(", 1\);) p n
+(      strncat\(req->agent, buffer, curseur\);) N
+(    }) N
+(    ) S
+(break) K
+(; ) p n
+(  ) S
+(case) K
+( 2 :) p n
+(    strncpy\(req->host, buffer, curseur\);) N
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 3 :) p n
+(    ) S
+(if) K
+( \(!strncmp\(buffer, ") p
+(keep-alive) str
+(", 10\)\){) p n
+(      req->keep_alive = 1;) N
+(    }) N
+(    ) S
+(break) K
+(;   ) p n
+(  ) S
+(case) K
+( 4 :) p n
+(    req->alive_time = atoi\(buffer\);) N
+(    ) S
+(break) K
+(;    ) p n
+(  ) S
+(case) K
+( 5 :) p n
+(    strncpy\(req->referer, buffer, curseur\);) N
+(    ) S
+(break) K
+(;    ) p n
+(  ) S
+(case) K
+( 6 :) p n
+(    strncpy\(req->language, buffer, curseur\);) N
+(    ) S
+(break) K
+(;) p 16 T (      ) N
+(  ) S
+(case) K
+( 7 :) p n
+(    strncpy\(req->encoding, buffer, curseur\);) N
+(    ) S
+(break) K
+(;    ) p n
+(  ) S
+(case) K
+( 8 :) p n
+(    strncpy\(req->charset, buffer, curseur\);) N
+(    ) S
+(break) K
+(;    ) p n
+(  ) S
+(case) K
+( 9 :) p n
+(    strncpy\(req->cache_control, buffer, curseur\);) N
+(    ) S
+(break) K
+(;    ) p n
+(  ) S
+(case) K
+( 10 :) p n
+(    strncpy\(req->accept, buffer, curseur\);) N
+(    ) S
+(break) K
+(;  ) p n
+(  ) S
+(case) K
+( 11 :) p n
+(    strncat\(req->authorization, buffer, curseur\);) N
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 12 :) p n
+(    req->content_length = atoi\(buffer\);) N
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(case) K
+( 13 :) p n
+(    strncat\(req->content_type, buffer, curseur\);) N
+(    ) S
+(break) K
+(;) p n
+(  }) N
+(}) N
+(decode.c) (Page 4/4) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(decode.c) (10/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 11
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _BSD_SOURCE) p n
+() N
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <time.h>) p n
+() N
+(#include) K
+( ") p
+(encode.h) str
+(") p n
+() N
+(static) K
+( ) p
+(void) k
+( ajouter\(buffer_t *ouptut, ) p
+(char) k
+( *entete, ) p
+(int) k
+( entete_size, ) p
+(char) k
+( *valeu) p n
+(r, ) S
+(int) k
+( valeur_size\);) p n
+(static) K
+( ) p
+(void) k
+( getTime\() p
+(char) k
+( *date, time_t time\);) p n
+() N
+(/* Fonction qui forme l'entete de la reponse HTTP */) c n
+(void) k
+( encoder\(buffer_t *output, reponse_t *rep, request_t *req\)) p n
+({) N
+(  output->ptr[0] = ') S
+(\\0) str
+(';) p n
+(  output->use = 0;) N
+() N
+(  ) S
+(if) K
+(\(req->protocol == 1\){) p n
+(    ajouter\(output, ") S
+(HTTP/1.0) str
+(", 8, rep->header.ptr, strlen\(rep->header.ptr\)\);) p n
+(  }) S
+(else) K
+({) p n
+(    ajouter\(output, ") S
+(HTTP/1.1) str
+(", 8, rep->header.ptr, strlen\(rep->header.ptr\)\);) p n
+(  }) N
+() N
+(  ) S
+(if) K
+(\(rep->code < 400\){) p n
+(    ) S
+(/*Date*/) c n
+(    ) p
+(char) k
+( date[50] = {0};) p n
+(    getTime\(date, rep->time\);) N
+(    ajouter\(output, ") S
+(Date: ) str
+(", 6, date, 32\);) p n
+() N
+(    ) S
+(/*Server*/) c n
+(    ajouter\(output, ") p
+(Server: ) str
+(", 8, gl_name.ptr, gl_name.use\);) p n
+(    ) N
+(    ) S
+(/*Content-type*/) c n
+(    ) p
+(if) K
+( \(rep->content_type != ) p
+(NULL) K
+( && req->index != 2\){) p n
+(      ajouter\(output, ") S
+(Content-Type: ) str
+(", 14, rep->content_type, strlen\(rep->content_) p n
+(type\)\);) N
+(    }) N
+(  }) N
+(  ) S
+(/*Authenticate*/) c n
+(  ) p
+(if) K
+( \(rep->code == 401\){) p n
+(    ajouter\(output, ") S
+(WWW-Authenticate: ) str
+(", 18, ") p
+(Basic realm=\\"serveur de test\\") str
+(", 29\);) p n
+(  }) N
+(  output->use = strlen\(output->ptr\);) N
+(}) N
+() N
+(/* Ajoute l'entete et sa valeur dans le buffer output */) c n
+(static) K
+( ) p
+(void) k
+( ajouter\(buffer_t *output, ) p
+(char) k
+( *entete, ) p
+(int) k
+( entete_size, ) p
+(char) k
+( *valeu) p n
+(r, ) S
+(int) k
+( valeur_size\)) p n
+({) N
+(  bufstrcat\(output,entete,entete_size\);) N
+(  bufstrcat\(output,valeur,valeur_size\);) N
+(  bufstrcat\(output,") S
+(\\r\\n) str
+(", 2\);) p n
+(}) N
+() N
+(/* Formate time dans date */) c n
+(static) K
+( ) p
+(void) k
+( getTime\() p
+(char) k
+( *date, time_t time\)) p n
+({) N
+(  ) S
+(struct) k
+( tm gmtime;) p n
+(  gmtime_r\(&time,&gmtime\);) N
+(  snprintf\(date, 32,) N
+() S 8 T (   ") S
+(%s, %02d %s %04d %02d:%02d:%02d GMT) str
+(",) p n
+(encode.c) (Page 1/2) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p 8 T (   day[gmtime.tm_wday],) N
+() S 8 T (   gmtime.tm_mday,) N
+() S 8 T (   mon[gmtime.tm_mon],) N
+() S 8 T (   gmtime.tm_year + 1900,) N
+() S 8 T (   gmtime.tm_hour,) N
+() S 8 T (   gmtime.tm_min,) N
+() S 8 T (   gmtime.tm_sec\);) N
+(}) N
+(encode.c) (Page 2/2) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(encode.c) (11/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 12
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _BSD_SOURCE) p n
+() N
+(#include) K
+( ") p
+(getContentType.h) str
+(") p n
+() N
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <string.h>) p n
+() N
+(#define) K
+( isExecutable\(file_stat\) \(\(\(file_stat\)->st_mode & S_IXUSR\) == S_IXUSR\)) p n
+() N
+(/* Retourne 1 s'il existe un index.{htm,html} dans le dossier */) c n
+(static) K
+( ) p
+(int) k
+( indexExistInDir\() p
+(char) k
+( *path\);) p n
+(/* Retourne 1 si le path contient la chaine /cgi-bin/ et 0 sinon */) c n
+(static) K
+( ) p
+(int) k
+( isInCgiDir\() p
+(char) k
+( *path\);) p n
+(/* Cherche l'extention du fichier dans path et l'ecrit dans ext,) c n
+(   Retourne 1 si une extension a \303\251t\303\251 trouv\303\251e et 0 sinon */) N
+(static) K
+( ) p
+(int) k
+( getExtension\() p
+(char) k
+( *path, ) p
+(char) k
+( *ext\);) p n
+(/* Ecrit dans ct le type mime correspondant a l'extension contenue dans ext ) c n
+(   et change la valeur de l'index \(voir global.h\) si necessaire,) N
+(   Retourne 1 si le type mime est connu et correctement modifi\303\251 et 0 sinon */) N
+(static) K
+( ) p
+(int) k
+( setContentType\() p
+(char) k
+( *ext, ) p
+(char) k
+( *ct, ) p
+(int) k
+( *index\);) p n
+() N
+() N
+(void) k
+( getContentType\(request_t *requ, reponse_t *rep, ) p
+(struct) k
+( stat *file_stat\)) p n
+({) N
+(  ) S
+(if) K
+(\(isDir\(file_stat\)\){) p n
+(    strcpy\(rep->content_type,") S
+(text/html) str
+("\);) p n
+(    ) S
+(if) K
+(\(!indexExistInDir\(requ->path\)\){) p n
+(      requ->index = 1;) N
+(    }) N
+(    ) S
+(return) K
+(;) p n
+(  }) N
+() N
+(  ) S
+(if) K
+(\(isInCgiDir\(requ->path\)\){) p n
+(    ) S
+(if) K
+(\(isExecutable\(file_stat\)\){) p n
+(      strcpy\(rep->content_type,") S
+(text/html) str
+("\);) p n
+(      requ->index = 2;) N
+(      ) S
+(return) K
+(;) p n
+(    }) N
+(  }) N
+() N
+(  ) S
+(char) k
+( ext[8] = {0};) p n
+(  ) S
+(if) K
+(\(getExtension\(requ->path,ext\)\){) p n
+(    ) S
+(if) K
+(\(!setContentType\(ext,rep->content_type,&requ->index\)\){) p n
+(      strcpy\(rep->content_type,") S
+(text/html) str
+("\);) p n
+(    }) N
+(  }) S
+(else) K
+({) p n
+(    strcpy\(rep->content_type,") S
+(text/html) str
+("\);) p n
+(  }) N
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( indexExistInDir\() p
+(char) k
+( *path\)) p n
+({) N
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(FILE) k
+( *f;) p n
+(  buffer_t index_path = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, path, strlen\(path\)\);) p n
+(  bufstrcat\(&index_path,") S
+(/index.htm) str
+(",10\);) p n
+(  ) S
+(if) K
+(\(\(f = fopen\(index_path.ptr,") p
+(r) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    strncpy\(path,index_path.ptr,index_path.siz\);) N
+(    fclose\(f\);) N
+(    i = 1;) N
+(  }) N
+(getContentType.c) (Page 1/3) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  strncat\(index_path.ptr,") p
+(l) str
+(",1\);) p n
+(  ) S
+(if) K
+(\(\(f = fopen\(index_path.ptr,") p
+(r) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    strncpy\(path,index_path.ptr,index_path.siz\);) N
+(    fclose\(f\);) N
+(    i = 1;) N
+(  }) N
+(  bufkill\(&index_path\);) N
+(  ) S
+(return) K
+( i; ) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( isInCgiDir\() p
+(char) k
+( *path\)) p n
+({) N
+(  ) S
+(return) K
+( \(strncmp\(path+gl_www.use ,") p
+(/cgi-bin/) str
+(",9\) == 0\);) p n
+(}) N
+() N
+(int) k
+( isDir\() p
+(struct) k
+( stat *file_stat\)) p n
+({) N
+() N
+(  ) S
+(return) K
+( \(\(file_stat->st_mode & S_IFDIR\) == S_IFDIR\);) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( getExtension\() p
+(char) k
+( *path, ) p
+(char) k
+( *ext\)) p n
+({) N
+(  ) S
+(char) k
+( *point = ) p
+(NULL) K
+(;) p n
+(  ) S
+(if) K
+(\(\(point = strrchr\(path,') p
+(.) str
+('\)\) != ) p
+(NULL) K
+(\){) p n
+(    ) S
+(if) K
+(\(point-1 == strrchr\(path,') p
+(/) str
+('\)\)) p n
+(      ) S
+(return) K
+( 0;) p n
+(    strncpy\(ext,point+1,strlen\(point+1\)\);) N
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+({) p n
+(    ) S
+(return) K
+( 0;) p n
+(  }) N
+(}) N
+() N
+(/* ext = extension, ct = Content-Type */) c n
+(static) K
+( ) p
+(int) k
+( setContentType\() p
+(char) k
+( *ext, ) p
+(char) k
+( *ct, ) p
+(int) k
+( *index\)) p n
+({) N
+(  ) S
+(if) K
+(\(!strcmp\(ext,") p
+(htm) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(text/html) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(cpp) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(text/html) str
+("\);) p n
+(    *index = 3;) N
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(gif) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(image/gif) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(svg) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(image/png) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(png) str
+("\) || !strcmp\(ext,") p
+(ico) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(image/png) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strncmp\(ext,") p
+(jp) str
+(",2\)\){) p n
+(    strcpy\(ct,") S
+(image/jpeg) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(pdf) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(application/pdf) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(ext,") p
+(txt) str
+("\) || !strcmp\(ext,") p
+(c) str
+("\) || !strcmp\(ext,") p
+(h) str
+("\)\){) p n
+(    strcpy\(ct,") S
+(text/plain) str
+("\);) p n
+(    ) S
+(return) K
+( 1;) p n
+(getContentType.c) (Page 2/3) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(getContentType.c) (12/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3,1) 13
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  }) p n
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+(getContentType.c) (Page 3/3) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _BSD_SOURCE) p n
+() N
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <time.h>) p n
+() N
+(#include) K
+( ") p
+(makeLog.h) str
+(") p n
+() N
+(char) k
+( *day[7] = {") p
+(Sun) str
+(",") p
+(Mon) str
+(",") p
+(Tue) str
+(",") p
+(Wen) str
+(",") p
+(Thu) str
+(",") p
+(Fri) str
+(",") p
+(Sat) str
+("};) p n
+(char) k
+( *mon[12] = {") p
+(Jan) str
+(",") p
+(Feb) str
+(",") p
+(Mar) str
+(",") p
+(Apr) str
+(",") p
+(May) str
+(",") p
+(Jun) str
+(",") p
+(Jul) str
+(",") p
+(Aug) str
+(",") p
+(Sep) str
+(",") p
+(Oct) str
+(",") p
+(Nov) str
+(",") p
+() str n
+(Dec) S
+("};) p n
+() N
+() N
+(//Date, addresse IP, nom de domaine du client,) c n
+(//User-Agent, fichier demand\303M-^C\302\251, resultat) N
+(void) k
+( makeLog\(request_t *requ, reponse_t *rep\)) p n
+({) N
+(  ) S
+(FILE) k
+( *f;) p n
+(  ) S
+(struct) k
+( tm gmtime;) p n
+(  ) S
+(char) k
+( *logpath;) p n
+(  ) S
+(if) K
+( \(rep->code >= 400\)) p n
+(    logpath = gl_logError.ptr;) N
+(  ) S
+(else) K n
+(    logpath = gl_logAccess.ptr;) p n
+(  ) S
+(if) K
+(\(rep->time == 0\)) p n
+(    rep->time = time\() S
+(NULL) K
+(\);) p n
+(  gmtime_r\(&rep->time,&gmtime\);) N
+(  ) S
+(char) k
+( log_time[100] = {0};) p n
+(  sprintf\(log_time,) N
+() S 8 T (  ") S
+([%s, %02d %s %04d %02d:%02d:%02d GMT]) str
+(",) p n
+() S 8 T (  day[gmtime.tm_wday],) N
+() S 8 T (  gmtime.tm_mday,) N
+() S 8 T (  mon[gmtime.tm_mon],) N
+() S 8 T (  gmtime.tm_year + 1900,) N
+() S 8 T (  gmtime.tm_hour,) N
+() S 8 T (  gmtime.tm_min,) N
+() S 8 T (  gmtime.tm_sec\);) N
+() N
+() N
+(  ) S
+(if) K
+(\(\(f = fopen\(logpath,") p
+(a) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    ) S
+(int) k
+( write_result[30] = {};) p n
+(    ) S
+(int) k
+( i = 0;) p n
+(    write_result[i++] = fwrite\(log_time,) S
+(sizeof) K
+(\() p
+(char) k
+(\),strlen\(log_time\),f\);) p n
+() N
+(    write_result[i++] = fwrite\(") S
+( <) str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+(    write_result[i++] = fwrite\(requ->ip,) S
+(sizeof) K
+(\() p
+(char) k
+(\),strlen\(requ->ip\),f\);) p n
+() N
+(    write_result[i++] = fwrite\(") S
+(> ) str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+(    ) S
+(if) K
+(\(strlen\(requ->host\) == 0\)strcpy\(requ->host,") p
+(Unknow) str
+("\);) p n
+(    write_result[i++] = fwrite\(requ->host,) S
+(sizeof) K
+(\() p
+(char) k
+(\),strlen\(requ->host\),f\);) p n
+() N
+(    write_result[i++] = fwrite\(") S
+( \\") str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+(    ) S
+(if) K
+(\(strlen\(requ->agent\) == 0\)strcpy\(requ->agent,") p
+(Unknow) str
+("\);) p n
+(    write_result[i++] = fwrite\(requ->agent,) S
+(sizeof) K
+(\() p
+(char) k
+(\),strlen\(requ->agent\),f\);) p n
+() N
+(    write_result[i++] = fwrite\(") S
+(\\" ) str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+(    write_result[i++] = fwrite\(requ->path,) S
+(sizeof) K
+(\() p
+(char) k
+(\),strlen\(requ->path\),f\);) p n
+() N
+(    write_result[i++] = fwrite\(") S
+( ) str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+(    write_result[i++] = fwrite\(rep->header.ptr,) S
+(sizeof) K
+(\() p
+(char) k
+(\),rep->header.use,f\);) p n
+() N
+(makeLog.c) (Page 1/2) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(getContentType.c, makeLog.c) (13/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2,1) 14
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    write_result[i++] = fwrite\(") p
+(\\r\\n) str
+(",) p
+(sizeof) K
+(\() p
+(char) k
+(\),2,f\);) p n
+() N
+(    fclose\(f\);) N
+(    ) S
+(for) K
+( \() p
+(int) k
+( n = 0; n < i; n++\){) p n
+(      ) S
+(if) K
+(\(write_result[n] == -1\)) p n
+() S 8 T (perror\(") S
+(write) str
+("\);) p n
+(    }) N
+(  }) S
+(else) K
+({) p n
+(    perror\(") S
+(Erreur fopen du fichier de log) str
+("\);) p n
+(  }) N
+(}) N
+(makeLog.c) (Page 2/2) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <stdlib.h>) p n
+() N
+(#include) K
+( ") p
+(memoire.h) str
+(") p n
+() N
+(#ifndef) K
+( NDEBUG) p n
+() N
+(static) K
+( ) p
+(int) k
+( niveau = 0;) p n
+(static) K
+( bool trace = true;) p n
+() N
+(static) K
+( ) p
+(void) k
+( tracer\() p
+(char) k
+( type, ) p
+(void) k
+( *p\){) p n
+(  ) S
+(if) K
+(\(trace\)) p n
+(    printf\(") S
+( [memoire %c : %2d \(%p\)]\\n) str
+(", type, niveau, p\);) p n
+(}) N
+() N
+(void) k
+( *memoire_allouer\(size_t size\){) p n
+(  ) S
+(if) K
+(\(size == 0\){) p n
+(    fprintf\(stderr, ") S
+(alocation de 0octets\\n) str
+("\);) p n
+(    ) S
+(return) K
+( ) p
+(NULL) K
+(;) p n
+(  }) N
+() N
+(  ) S
+(void) k
+( *p = malloc\(size\);) p n
+(  ) N
+(  ) S
+(if) K
+(\(p != ) p
+(NULL) K
+(\){) p n
+(    niveau++;) N
+(    tracer\(') S
+(+) str
+(', p\);) p n
+(  }) N
+(  ) N
+(  ) S
+(return) K
+( p; ) p n
+(}) N
+() N
+(void) k
+( *memoire_reallouer\() p
+(void) k
+( *p, size_t size\){) p n
+(  ) S
+(void) k
+( *q = realloc\(p, size\);) p n
+() N
+(  ) S
+(if) K
+(\(p == ) p
+(NULL) K
+( && q != 0\){) p n
+(    niveau++;) N
+(    tracer\(') S
+(+) str
+(', q\);) p n
+(    ) S
+(return) K
+( q;) p n
+(  }) N
+() N
+(  ) S
+(if) K
+(\(p != ) p
+(NULL) K
+( && size == 0\){) p n
+(    fprintf\(stderr, ") S
+(free via un realloc\\n) str
+("\);) p n
+(    niveau--;) N
+(    tracer\(') S
+(-) str
+(', q\);) p n
+(    ) S
+(return) K
+( q;) p n
+(  }) N
+() N
+(  tracer\(') S
+( ) str
+(', q\);) p n
+(  ) S
+(return) K
+( q;) p n
+(}) N
+() N
+(void) k
+( memoire_liberer\() p
+(void) k
+( *p\){) p n
+(  ) S
+(if) K
+(\(p == ) p
+(NULL) K
+(\){) p n
+(    fprintf\(stderr, ") S
+(free de NULL\\n) str
+("\);) p n
+(    ) S
+(return) K
+(;) p n
+(  }) N
+() N
+(  free\(p\);) N
+() N
+(  niveau--;) N
+(  tracer\(') S
+(-) str
+(', p\);) p n
+(}) N
+(memoire.c) (Page 1/2) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(makeLog.c, memoire.c) (14/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2,1) 15
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+(int) k
+( memoire_balance\(\){) p n
+(  ) S
+(return) K
+( niveau;) p n
+(}) N
+() N
+(void) k
+( memoire_trace\(bool valeur\){) p n
+(  trace = valeur;) N
+(}) N
+() N
+(#endif) K
+( ) p
+(/* NDEBUG */) c n
+(memoire.c) (Page 2/2) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _XOPEN_SOURCE 500) p n
+() N
+(#include) K
+( ") p
+(global.h) str
+(") p n
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+(#include) K
+( ") p
+(sendrecv.h) str
+(") p n
+(#include) K
+( ") p
+(getContentType.h) str
+(") p n
+(#include) K
+( ") p
+(authentification.h) str
+(") p n
+(#include) K
+( ") p
+(makeLog.h) str
+(") p n
+(#include) K
+( ") p
+(decode.h) str
+(") p n
+(#include) K
+( ") p
+(encode.h) str
+(") p n
+() N
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <assert.h>) p n
+(#include) K
+( <limits.h>) p n
+() N
+(#define) K
+( valider_access\(mode\) \(\(\(mode\) & S_IROTH\) == S_IROTH\)) p n
+(#define) K
+( min\(x, y\) \(\(\(x\)<\(y\)\)?\(x\):\(y\)\)) p n
+() N
+(#define) K
+( SIZE_PATH 1024) p n
+(#define) K
+( SIZE_IP 32) p n
+() N
+(#define) K
+( PRINT_ERREUR 1) p n
+() N
+(/* Fonction qui gere les erreurs */) c n
+(static) K
+( ) p
+(void) k
+( erreur\() p
+(int) k
+( code, reponse_t *rep\)) p n
+({) N
+(  ) S
+(switch) K
+(\(code\)) p n
+(    {) N
+(    ) S
+(case) K
+( 400 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 400 : Bad Request !\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 400 Bad Request) str
+(",17\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 401 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 401 : Unautorized !\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 401 Unauthorized) str
+(",17\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 403 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 403 : Forbidden\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 403 Forbidden) str
+(",14\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 404 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 404 : File not found ! \(Try Again\)\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 404 Not Found) str
+(",14\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 413 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 413 : Request Entity Too Large\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 413 Request Entity Too Large) str
+(",29\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 414 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 414 : Request-URI Too Long\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 414 Request-URI Too Long) str
+(",25\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 500 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+(requete.c) (Page 1/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(memoire.c, requete.c) (15/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2-3) 16
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p 8 T (printf\(") S
+(Erreur 500 : Internal Server Error\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 500 Internal Server Error) str
+(",26\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 501 :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur 501 : Commande non suport\303M-^C\302\251e\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,") S
+( 501 Not Implemented) str
+(",20\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(default) K
+( :) p n
+(      ) S
+(if) K
+(\(PRINT_ERREUR\)) p n
+() S 8 T (printf\(") S
+(Erreur interne : Code d'erreur inconnu !\\n) str
+("\);) p n
+(      bufstrcpy\(&rep->header,"",0\);) N
+(    }) N
+(  rep->code = code;) N
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( valider_path\(request_t *req, reponse_t *rep\)) p n
+({) N
+(  ) S
+(char) k
+( complete_path[PATH_MAX] = {0};) p n
+(  ) S
+(char) k
+( resolved_path[PATH_MAX] = {0};) p n
+() N
+(  ) S
+(/* On obtient le chemin complet de la ressource */) c n
+(  strncpy\(complete_path, gl_www.ptr, gl_www.use\);) p n
+(  strcat \(complete_path, req->path\);) N
+() N
+(  ) S
+(/* On evalue le path complet de la ressource */) c n
+(  ) p
+(if) K
+(\(realpath\(complete_path, resolved_path\) == ) p
+(NULL) K
+(\){) p n
+(    ) S
+(return) K
+( 404;) p n
+(  }) N
+(  ) N
+(  ) S
+(if) K
+(\(strncmp\(resolved_path, gl_www.ptr, gl_www.use\)\){) p n
+(    ) S
+(return) K
+( 404;) p n
+(  }) N
+(  ) N
+(  strncpy\(req->path, resolved_path, strlen\(resolved_path\)\);) N
+() N
+(  ) S
+(return) K
+( 0; ) p
+(/* Bon path */) c n
+(}) p n
+() N
+() N
+(static) K
+( ) p
+(void) k
+( getVarGET\(request_t *req, buffer_t *var\)) p n
+({) N
+(  ) S
+(int) k
+( size = strlen\(req->path\);) p n
+(  ) S
+(char) k
+( *pos = strchr\(req->path, ') p
+(?) str
+('\);) p n
+(  ) N
+(  ) S
+(if) K
+(\(pos != ) p
+(NULL) K
+(\){) p n
+(    bufstrcpy\(var, pos+1, size-\(pos-req->path\)-1\);) N
+(    ) N
+(    req->path[pos-req->path] = ') S
+(\\0) str
+(';) p n
+(  }) N
+(}) N
+() N
+(static) K
+( ) p
+(void) k
+( get_encoding\() p
+(char) k
+( *p, ) p
+(char) k
+( *output\)) p n
+({) N
+(  ) S
+(int) k
+( n = 0;) p n
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(while) K
+(\(p[i++] != ') p
+(\\0) str
+('\){) p n
+(    n++;) N
+() N
+(    ) S
+(if) K
+(\(p[i] == ') p
+(,) str
+(' || p[i] == ') p
+(\\0) str
+('\){) p n
+(      ) S
+(if) K
+(\(!strncmp\(&p[i-n],") p
+(gzip) str
+(",4\)\){) p n
+() S 8 T (strncpy\(output,&p[i-n],n\);) N
+(requete.c) (Page 2/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      }) p
+(else) K
+( ) p
+(if) K
+( \(!strncmp\(&p[i-n],") p
+(bzip2) str
+(",5\)\){) p n
+() S 8 T (strncpy\(output,&p[i-n],n\);) N
+(      }) N
+() N
+(      n = 0;) N
+(      ) S
+(if) K
+(\(p[i++] == ') p
+(\\0) str
+('\){) p n
+() S 8 T () S
+(break) K
+(;) p n
+(      }) N
+(    }) N
+(  }) N
+(}) N
+() N
+(/* Fonction qui interprete une requette passee en parametre dans input,) c n
+(   fournit le chemin du fichier demand\303M-^C\302\251 dans path,) N
+(   fournit le header dans output,) N
+(   index ) N
+(   pr\303M-^C\302\251cise s'il faut conserver la connection dans keep_alive \(0/1\) */) N
+(static) K
+( ) p
+(int) k
+( interpreter\(client_t *client, ) p
+(int) k
+( *index, ) p
+(int) k
+( *keep_alive, ) p
+(char) k
+( *enco) p n
+(ding, ) S
+(int) k
+( *endRequete\)) p n
+({) N
+(  request_t requete = {0, {0}, {0}, client->ip, {0}, {0}, {0}, {0}, {0}, {0}, {0) N
+(}, {0}, {0}, {0}, 0, 0, 0, 0, 0};) N
+(  reponse_t reponse = {200, {0}, {) S
+(NULL) K
+(, 0, 0}, 0, 10};) p n
+(  reponse.header = bufinit\(&reponse.header, BUFFER_SIZE, ") S
+( 200 OK) str
+(", 9\);) p n
+(  reponse.header.use = 9;) N
+(  reponse.time = time\() S
+(NULL) K
+(\);) p n
+() N
+(#ifndef) K
+( NDEBUG) p n
+(  printf\(") S
+(<interpreter> requete entrante :\\n'%s'\\n) str
+(", client->requete.ptr\);) p n
+(#endif) K n
+() p n
+(  ) S
+(int) k
+( ret = decode\(&client->requete, &requete\);) p n
+(  ) S
+(if) K
+(\(ret != 0\){) p n
+(    erreur\(ret, &reponse\);) N
+(  }) N
+() N
+(  ) S
+(if) K
+(\(requete.method == 1\){ ) p
+(// GET) c n
+(    getVarGET\(&requete, &client->vars\);) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(requete.method == 3\){ ) p
+(// POST) c n
+(    ) p
+(int) k
+( size = min\(requete.content_length, client->requete.use - *endRequete\);) p n
+(    bufstrcpy\(&client->vars, client->requete.ptr+\(*endRequete\), size\);) N
+(  }) N
+() N
+(  printf\(") S
+(variables : %s\\n) str
+(", client->vars.ptr\);) p n
+() N
+(  ) S
+(/* Validation du path */) c n
+(  ) p
+(if) K
+(\(valider_path\(&requete, &reponse\)\){) p n
+(    erreur\(404, &reponse\);) N
+(  }) N
+() N
+(  ) N
+(  ) S
+(struct) k
+( stat file_stat;) p n
+(  ) S
+(if) K
+(\(reponse.code == 200\){) p n
+(    ) S
+(if) K
+(\(stat\(requete.path, &file_stat\) == -1\){) p n
+(      perror\(") S
+(stats) str
+("\);) p n
+(      erreur\(500, &reponse\);) N
+(    }) N
+(  }) N
+(    ) N
+(  ) S
+(/*droit de lecture */) c n
+(  ) p
+(if) K
+(\(reponse.code == 200\){) p n
+(    ) S
+(if) K
+(\(!valider_access\(file_stat.st_mode\)\){) p n
+(requete.c) (Page 3/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(requete.c) (16/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (4-5) 17
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      erreur\(403, &reponse\);) p n
+(    }) N
+(  }) N
+() N
+(  ) S
+(/* Authentification */) c n
+(  ) p
+(if) K
+(\(reponse.code == 200\){) p n
+(    ) S
+(if) K
+(\(passFileExistInDir\(requete.path\)\){) p n
+(      ) S
+(char) k
+( login[30] = {0};) p n
+(      ) S
+(char) k
+( password[15] = {0};) p n
+(      ) N
+(      ) S
+(if) K
+(\(!getAuthorization\(requete.authorization, login, password\) &&) p n
+() S 8 T ( !getLoginAndPassword\(requete.query, login, password\)\){) N
+() S 8 T (erreur\(401,&reponse\);) N
+() S 8 T (requete.keep_alive = 0;) N
+(      }) S
+(else) K
+({) p n
+() S 8 T () S
+(char) k
+( pass_path[SMALL_BUFF];) p n
+() S 8 T (getPassFilePath\(requete.path,pass_path,isDir\(&file_stat\)\);) N
+() S 8 T () S
+(if) K
+(\(!authentifier\(login,password,pass_path\)\){) p n
+() S 8 T (  ) N
+() S 8 T (  erreur\(401,&reponse\);) N
+() S 8 T (  requete.keep_alive = 0;) N
+() S 8 T (}) N
+(      }) N
+(    }) N
+(    ) N
+(    ) S
+(/* Get content type*/) c n
+(    getContentType\(&requete, &reponse, &file_stat\);) p n
+(    ) S
+(if) K
+(\(requete.method == 2\){) p n
+(      *index = 4; ) S
+(// methode HEAD ) c n
+(    }) p
+(else) K
+({) p n
+(      *index = requete.index;) N
+(    }) N
+(  }) N
+(  ) N
+(  bufstrcpy\(&client->path, requete.path, strlen\(requete.path\)\);) N
+(  ) N
+(  ) S
+(/* On creer le header dans output */) c n
+(  encoder\(&client->reponse, &reponse, &requete\);) p n
+() N
+(  ) S
+(if) K
+(\(strlen\(requete.encoding\) > 0\){) p n
+(    get_encoding\(requete.encoding,encoding\);) N
+(  }) N
+() N
+(  makeLog\(&requete,&reponse\);) N
+() N
+(  *keep_alive = requete.keep_alive;) N
+(  *endRequete += requete.content_length;) N
+() N
+(  bufkill\(&reponse.header\);) N
+() N
+(  ) S
+(return) K
+( reponse.code;) p n
+(}) N
+() N
+(static) K
+( ) p
+(void) k
+( supprimerRequete\(buffer_t *requete, ) p
+(int) k
+( posFin\){) p n
+(  assert\(posFin <= requete->use\);) N
+() N
+(  memmove\(requete->ptr, requete->ptr + posFin, requete->use - posFin\);) N
+(  requete->use -= posFin; ) N
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( traiterRequete\(client_t *client, ) p
+(int) k
+( ret, ) p
+(int) k
+( *keep_alive, ) p
+(int) k
+( end\){) p n
+(  ) S
+(int) k
+( index = 0;) p n
+(requete.c) (Page 4/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  ) p
+(char) k
+( encoding[16] = {') p
+(\\0) str
+('};) p n
+(  client->vars.ptr[0] = ') S
+(\\0) str
+(';) p n
+(  client->vars.use = 0;) N
+() N
+(  ) S
+(if) K
+(\(ret == 0\){) p n
+(    ret = interpreter\(client,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (      &index,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (      keep_alive,) S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (      encoding,) N
+() S 8 T () S 16 T (      &end\);) N
+(    supprimerRequete\(&client->requete, end\);) N
+(  }) S
+(else) K
+({) p n
+(    client->requete.use = 0;) N
+(  }) N
+() N
+(  ) S
+(if) K
+(\(ret >= 400\){) p n
+(    sendErreur\(&client->reponse, ret, client->sock\);) N
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(ret >= 0\){) p n
+(    sendReponse\(&client->reponse, &client->path, client->sock, index, &client->v) N
+(ars, encoding\);) N
+(  }) N
+(  ) N
+(  ) S
+(if) K
+(\(gl_close != 0\){) p n
+(    client->uptime = time\() S
+(NULL) K
+(\); ) p n
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(void) k
+( *requeteThread\() p
+(void) k
+( *param\){) p n
+(  client_t *client = \(client_t *\)param;) N
+(  ) S
+(int) k
+( keep_alive = 0;) p n
+(  ) S
+(int) k
+( ret = 0;) p n
+(  ) S
+(int) k
+( endRequete = 0;) p n
+() N
+(  initClientsBuffer\(client\);) N
+(  ) N
+(  ) S
+(if) K
+(\(pthread_detach\(pthread_self\(\)\) != 0\){) p n
+(    perror\(") S
+(pthread_detach) str
+("\);) p n
+(    ) S
+(return) K
+( ) p
+(NULL) K
+(;) p n
+(  }) N
+() N
+(  client->requete.use = 0;) N
+(  ) S
+(while) K
+(\(\(ret = readRequete\(&client->requete, client->sock, &endRequete, true\)\) !) p n
+(= -1\){) N
+(    ) N
+(    traiterRequete\(client, ret, &keep_alive, endRequete\);) N
+() N
+(    ) S
+(if) K
+(\(!keep_alive\){) p n
+(      ) S
+(break) K
+(;) p n
+(    }) N
+(  }) N
+() N
+(  ) S
+(if) K
+(\(client->sock != -1\){) p n
+(    printf\(") S
+(\\e[31md\303\251connexion du client %s:%s \(socket %d\)\\e[0m\\n) str
+(", client->host, client->ser) p n
+(v, client->sock\);) N
+(    deconnexionClient\(client\);) N
+(  }) N
+() N
+(  ) S
+(return) K
+( ) p
+(NULL) K
+(;) p n
+(}) N
+() N
+(requete.c) (Page 5/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(requete.c) (17/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (6,1) 18
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(int) k
+( requete\(client_t *client\){) p n
+(  ) S
+(int) k
+( keep_alive = 0;) p n
+(  ) S
+(int) k
+( ret = 0;) p n
+(  ) S
+(int) k
+( endRequete = 0;) p n
+() N
+(  initClientsBuffer\(client\);) N
+( ) N
+(  ret = readRequete\(&client->requete, client->sock, &endRequete, false\);) N
+() N
+(  ) S
+(if) K
+(\(ret == 100\){) p n
+(    ) S
+(return) K
+( 100;) p n
+(  }) N
+(  ) N
+(  traiterRequete\(client, ret, &keep_alive, endRequete\);) N
+(  ) N
+(  ) S
+(if) K
+(\(ret == -1 || !keep_alive\){) p n
+(    printf\(") S
+(\\e[31md\303\251connexion du client %s:%s \(socket %d\)\\e[0m\\n) str
+(", client->host, client->ser) p n
+(v, client->sock\);) N
+(    deconnexionClient\(client\);) N
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+(requete.c) (Page 6/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _GNU_SOURCE) p n
+() N
+(#include) K
+( ") p
+(global.h) str
+(") p n
+(#include) K
+( ") p
+(sendrecv.h) str
+(") p n
+() N
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <assert.h>) p n
+(#include) K
+( <dirent.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <sys/types.h>) p n
+(#include) K
+( <sys/socket.h>) p n
+(#include) K
+( <errno.h>) p n
+(#include) K
+( <unistd.h>) p n
+(#include) K
+( <time.h>) p n
+(#include) K
+( <stdarg.h>) p n
+(#include) K
+( <sys/wait.h>) p n
+() N
+(#define) K
+( SIZE_REQUETE 1<<14) p n
+(#define) K
+( PATH_ERROR ") p
+(./var/erreur/) str
+(") p n
+() N
+(static) K
+( ) p
+(char) k
+( b1[] = ") p
+(<!DOCTYPE html PUBLIC \\"-//W3C//DTD XHTML 1.0 Strict//EN\\" \\"http://www.w3.) str n
+(org/TR/xhtml1/DTD/xhtml1-strict.dtd\\">\\r\\n<html xmlns=\\"http://www.w3.org/1999/xhtml\\" xml:lang=\\"en\\" lang=\\") N
+(en\\">\\r\\n  <head>\\r\\n    <title>) S
+(";) p n
+(static) K
+( ) p
+(char) k
+( b2[] = ") p
+(</title>\\r\\n    <meta http-equiv=\\"Content-Type\\" content=\\"text/html; charset=utf-8\\" /) str n
+(>\\r\\n  </head>\\r\\n  <body>\\r\\n    <table>\\r\\n) S
+(";) p n
+(static) K
+( ) p
+(char) k
+( b3[] = ") p
+(      <tr><td><img src=\\"/icons/) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( b4[] = ") p
+(\\" height=\\"24px\\" width=\\"24px\\" /></td><td><a href=\\"./) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( b5[] = ") p
+(\\">) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( b6[] = ") p
+(</a></td></tr>\\r\\n) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( b7[] = ") p
+(    </table>\\r\\n  </body>\\r\\n</html>) str
+(";) p n
+() N
+(static) K
+( ) p
+(char) k
+( bi[] = ") p
+(parent directory/) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( bd[] = ") p
+(folder.svg\\" alt=\\"[DIR]) str
+(";) p n
+(static) K
+( ) p
+(char) k
+( bf[] = ") p
+(file.svg\\" alt=\\"[FIL]) str
+(";) p n
+() N
+(static) K
+( ) p
+(int) k
+( sendBuffer\(buffer_t *buf, ) p
+(int) k
+( sock\){) p n
+(  assert\(buf != ) S
+(NULL) K
+( && buf->ptr != ) p
+(NULL) K
+(\);) p n
+(  ) N
+(  ) S
+(int) k
+( size = BUFFER_SIZE;) p n
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<buf->use; i += BUFFER_SIZE\){) p n
+(    ) S
+(if) K
+(\(i + size > buf->use\){) p n
+(      size = buf->use - i;) N
+(    }) N
+(    ) N
+(    ) S
+(if) K
+(\(send\(sock, buf->ptr + i, size, MSG_MORE\) == -1\){) p n
+(      perror\(") S
+(send) str
+("\);) p n
+(      ) S
+(return) K
+( 500; ) p
+(// etudier le code a retourner) c n
+(    }) p n
+(  } ) N
+(  ) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+() N
+(static) K
+( ) p
+(int) k
+( sendDir\(buffer_t *path, ) p
+(int) k
+( sock\){) p n
+(  assert\(path != ) S
+(NULL) K
+( && path->ptr != ) p
+(NULL) K
+(\);) p n
+(  ) N
+(  DIR* dir = opendir\(path->ptr\);) N
+(  ) S
+(if) K
+(\(dir == ) p
+(NULL) K
+(\){) p n
+(    perror\(") S
+(opendir) str
+("\);) p n
+(    ) S
+(return) K
+( 404; ) p
+(// etudier le code de retour) c n
+(sendrecv.c) (Page 1/7) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(requete.c, sendrecv.c) (18/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (2-3) 19
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  }) p n
+(  ) N
+(  buffer_t buffer = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, b1, ) p
+(sizeof) K
+(\(b1\)-1\);) p n
+(  ) N
+(  bufcat\(&buffer, path\);) N
+(  bufstrcat\(&buffer, b2, ) S
+(sizeof) K
+(\(b2\)-1\);) p n
+(  ) N
+(  ) S
+(if) K
+(\(strcmp\(gl_www.ptr, path->ptr\) != 0\){ ) p
+(// a coriger) c n
+(    bufstrcat\(&buffer, b3, ) p
+(sizeof) K
+(\(b3\)-1\);) p n
+(    bufstrcat\(&buffer, bd, ) S
+(sizeof) K
+(\(bd\)-1\);) p n
+(    bufstrcat\(&buffer, b4, ) S
+(sizeof) K
+(\(b4\)-1\);) p n
+(    bufstrcat\(&buffer, ") S
+(../) str
+(", 3\);) p n
+(    bufstrcat\(&buffer, b5, ) S
+(sizeof) K
+(\(b5\)-1\);) p n
+(    bufstrcat\(&buffer, bi, ) S
+(sizeof) K
+(\(bi\)-1\);) p n
+(    bufstrcat\(&buffer, b6, ) S
+(sizeof) K
+(\(b6\)-1\);) p n
+(  }) N
+(  ) N
+(  ) S
+(int) k
+( len = offsetof\() p
+(struct) k
+( dirent, d_name\) + pathconf\(path->ptr, _PC_NAME_MAX\) ) p n
+(+ 1;) N
+(  ) S
+(struct) k
+( dirent *result;) p n
+(  ) S
+(struct) k
+( dirent *file = memoire_allouer\(len\);) p n
+(  ) N
+(  ) S
+(while) K
+(\(readdir_r\(dir, file, &result\) == 0 && result != ) p
+(NULL) K
+(\){) p n
+(    ) S
+(if) K
+(\(file->d_name[0] != ') p
+(.) str
+('\){) p n
+(      ) S
+(int) k
+( size = strlen\(file->d_name\);) p n
+(      ) N
+(      bufstrcat\(&buffer, b3, ) S
+(sizeof) K
+(\(b3\)-1\);) p n
+(      ) S
+(if) K
+(\(file->d_type == DT_DIR\){) p n
+() S 8 T (bufstrcat\(&buffer, bd, ) S
+(sizeof) K
+(\(bd\)-1\);) p n
+(      }) S
+(else) K
+({) p n
+() S 8 T (bufstrcat\(&buffer, bf, ) S
+(sizeof) K
+(\(bf\)-1\);) p n
+(      }) N
+(      ) N
+(      bufstrcat\(&buffer, b4, ) S
+(sizeof) K
+(\(b4\)-1\);) p n
+(      bufstrcat\(&buffer, file->d_name, size\);) N
+(      ) S
+(if) K
+(\(file->d_type == DT_DIR\)) p n
+() S 8 T (bufstrcat\(&buffer, ") S
+(/) str
+(", 1\);) p n
+(      bufstrcat\(&buffer, b5, ) S
+(sizeof) K
+(\(b5\)-1\);) p n
+(      bufstrcat\(&buffer, file->d_name, size\);) N
+(      ) S
+(if) K
+(\(file->d_type == DT_DIR\)) p n
+() S 8 T (bufstrcat\(&buffer, ") S
+(/) str
+(", 1\);) p n
+(      bufstrcat\(&buffer, b6, ) S
+(sizeof) K
+(\(b6\)-1\);) p n
+(    }) N
+(  }) N
+(  ) N
+(  bufstrcat\(&buffer, b7, ) S
+(sizeof) K
+(\(b7\)-1\);) p n
+(  ) N
+(  ) S
+(char) k
+( buf[30];) p n
+(  sprintf\(buf, ") S
+(Content-Length: %d\\r\\n\\r\\n) str
+(", buffer.use\);) p n
+(  ) N
+(  send\(sock, buf, strlen\(buf\), MSG_MORE\);) N
+(  send\(sock, buffer.ptr, buffer.use, 0\);) N
+(  ) N
+(  memoire_liberer\(file\);) N
+(  bufkill\(&buffer\);) N
+(  closedir\(dir\);) N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( sendFile\(buffer_t *path, ) p
+(int) k
+( sock\){) p n
+(  assert\(path != ) S
+(NULL) K
+( && path->ptr != ) p
+(NULL) K
+(\);) p n
+(  ) N
+(sendrecv.c) (Page 2/7) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  ) p
+(FILE) k
+(* file = fopen\(path->ptr, ") p
+(r) str
+("\);) p n
+(  ) S
+(if) K
+(\(file == ) p
+(NULL) K
+(\){) p n
+(    perror\(") S
+(fopen) str
+("\);) p n
+(    ) S
+(return) K
+( 404; ) p
+(// etudier le code de retour) c n
+(  }) p n
+(  ) N
+(  fseek\(file, 0, SEEK_END\);) N
+(  ) S
+(int) k
+( size = ftell\(file\);) p n
+(  ) S
+(char) k
+( buffer[BUFFER_SIZE+1] = {0};) p n
+() N
+(  sprintf\(buffer, ") S
+(Content-Length: %d\\r\\n\\r\\n) str
+(", size\);) p n
+() N
+(  send\(sock, buffer, strlen\(buffer\), MSG_MORE\);) N
+() N
+(  fseek\(file, 0, SEEK_SET\);) N
+(  ) S
+(while) K
+(\(\(size = fread\(buffer, ) p
+(sizeof) K
+(\() p
+(char) k
+(\), BUFFER_SIZE, file\)\) != 0\){) p n
+(    ) S
+(if) K
+(\(ferror\(file\)\){) p n
+(      perror\(") S
+(fread) str
+("\);) p n
+(      ) S
+(return) K
+( -1;) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(send\(sock, buffer, size, MSG_MORE\) == -1\){) p n
+(      perror\(") S
+(send) str
+("\);) p n
+(      ) S
+(return) K
+( -1;) p n
+(    }) N
+(  } ) N
+( ) N
+(  fclose\(file\);) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(static) K
+( ) p
+(int) k
+( sendEXE\() p
+(char) k
+( *path, bool relativPath, bool isCGI, ) p
+(int) k
+( sock, ) p
+(char) k
+( *var) p n
+(, ) S
+(int) k
+( nbrParam, ...\){) p n
+(  assert\(path != ) S
+(NULL) K
+(\);) p n
+(  assert\(sock >= 0\);) N
+(  assert\(nbrParam >= 0\);) N
+(  ) N
+(  ) S
+(int) k
+( tab[2];) p n
+(  ) S
+(if) K
+(\(pipe\(tab\) == -1\){) p n
+(    perror\(") S
+(pipe) str
+("\);) p n
+(    ) S
+(return) K
+( 500; ) p
+(// etudier le code de retour) c n
+(  }) p n
+() N
+(  ) S
+(int) k
+( ret = fork\(\);) p n
+(  ) S
+(if) K
+(\(ret == -1\){) p n
+(    perror\(") S
+(fork) str
+("\);) p n
+(    close\(tab[0]\);) N
+(    close\(tab[1]\);) N
+(    ) S
+(return) K
+( 500;) p n
+(  }) S
+(else) K
+( ) p
+(if) K
+(\(ret == 0\){ ) p
+(// fils) c n
+(    close\(tab[0]\);) p n
+(    dup2\(tab[1], STDOUT_FILENO\);) N
+(    close\(tab[1]\);) N
+(    ) N
+(    va_list ap;) N
+(    va_start\(ap, nbrParam\);) N
+(    ) N
+(    ) S
+(char) k
+( *tab[nbrParam+1];) p n
+(    ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<nbrParam; i++\){) p n
+(      tab[i] = va_arg\(ap, ) S
+(char) k
+(*\);) p n
+(    }) N
+(sendrecv.c) (Page 3/7) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(sendrecv.c) (19/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (4-5) 20
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    tab[nbrParam] = ) p
+(NULL) K
+(;) p n
+(    ) N
+(    va_end\(ap\);) N
+() N
+(    setenv\(") S
+(QUERY_STRING) str
+(", var, 1\);) p n
+() N
+(    ) S
+(if) K
+(\(relativPath\){) p n
+(      execvp\(path, tab\);) N
+(    }) S
+(else) K
+({) p n
+(      execv\(path, tab\);) N
+(    }) N
+(    perror\(") S
+(execv) str
+("\);) p n
+(    exit\(EXIT_FAILURE\);) N
+(  }) N
+(  ) N
+(  close\(tab[1]\);) N
+(  ) N
+(  ) S
+(int) k
+( size;) p n
+(  ) S
+(int) k
+( retour = 0;) p n
+(  buffer_t buffer = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, "", 0\);) p n
+(  ) S
+(while) K
+(\(\(size = read\(tab[0], buffer.ptr + buffer.use, BUFFER_SIZE\)\) != 0\){) p n
+(    ) S
+(if) K
+(\(size == -1\){) p n
+(      perror\(") S
+(read) str
+("\);) p n
+(      retour = -1;) N
+(      ) S
+(break) K
+(;) p n
+(    }) N
+(    ) N
+(    buffer.use += size;) N
+(    ) S
+(if) K
+(\(buffer.use + BUFFER_SIZE > buffer.siz\){) p n
+(      bufsize\(&buffer, 2*buffer.siz\);) N
+(    }) N
+(  }) N
+(  ) N
+(  size = buffer.use;) N
+(  ) S
+(char) k
+( buf[30];) p n
+(  ) S
+(char) k
+( *pos;) p n
+(  ) S
+(//if\(isCGI && \(\(\(pos = strstr\(buffer.ptr, "\\r\\n\\r\\n"\)\) != NULL\) || \(\(pos = str) c n
+(str\(buffer.ptr, "\\n\\n"\)\) != NULL\)\)\){) N
+(  ) p
+(if) K
+(\(isCGI && \(pos = strstr\(buffer.ptr, ") p
+(\\r\\n\\r\\n) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    size -= \(pos - buffer.ptr\) + 4;) N
+(    sprintf\(buf, ") S
+(Content-Length: %d\\r\\n) str
+(", size\);) p n
+(  }) S
+(else) K
+({) p n
+(    sprintf\(buf, ") S
+(Content-Length: %d\\r\\n\\r\\n) str
+(", size\);) p n
+(  }) N
+(  ) N
+(  send\(sock, buf, strlen\(buf\), MSG_MORE\);) N
+(  send\(sock, buffer.ptr, buffer.use, 0\);) N
+(  ) N
+(  waitpid\(ret, ) S
+(NULL) K
+(, 0\);) p n
+(  ) N
+(  bufkill\(&buffer\);) N
+(  close\(tab[0]\);) N
+(  ) S
+(return) K
+( retour;) p n
+(}) N
+() N
+(int) k
+( sendErreur\(buffer_t *reponse, ) p
+(int) k
+( code, ) p
+(int) k
+( sock\){) p n
+(  ) S
+(char) k
+( tmp[] = PATH_ERROR") p
+(000) str
+(";) p n
+(  buffer_t path = {tmp, ) S
+(sizeof) K
+(\(tmp\)-1, ) p
+(sizeof) K
+(\(tmp\)-1};) p n
+(  ) N
+(  sendBuffer\(reponse, sock\); ) S
+(// tester le code de retour) c n
+(  ) p n
+(  ) S
+(switch) K
+(\(code\){) p n
+(sendrecv.c) (Page 4/7) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  ) p
+(case) K
+( 401:) p n
+(  ) S
+(case) K
+( 400:) p n
+(  ) S
+(case) K
+( 403:) p n
+(  ) S
+(case) K
+( 404:) p n
+(  ) S
+(case) K
+( 413:) p n
+(  ) S
+(case) K
+( 414:) p n
+(  ) S
+(case) K
+( 500:) p n
+(  ) S
+(case) K
+( 501:) p n
+(    snprintf\(tmp + ) S
+(sizeof) K
+(\(tmp\)-4, 4, ") p
+(%d) str
+(", code\);) p n
+(    ) N
+(    ) S
+(// il faudrai envoyer l'entete d'erreur ici aussi) c n
+(    sendFile\(&path, sock\);) p n
+(    ) N
+(    ) S
+(break) K
+(;) p n
+(  ) S
+(default) K
+(:) p n
+(    fprintf\(stderr, ") S
+(Erreur %d non suport\303\251e\\n) str
+(", code\);) p n
+(    ) S
+(return) K
+( -1;) p n
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(/* Je ne sait pas encore vraiment comment exploiter le QUERY_STRING */) c n
+(int) k
+( sendReponse\(buffer_t *reponse, buffer_t *path, ) p
+(int) k
+( sock, ) p
+(int) k
+( index, buffer_t) p n
+( *var, ) S
+(char) k
+( *encoding\){) p n
+() N
+(#ifndef) K
+( NDEBUG) p n
+(  printf\(") S
+(file '%s'\\n) str
+(", path->ptr\);) p n
+(#endif) K n
+() p n
+(  ) S
+(if) K
+(\(sendBuffer\(reponse, sock\) == 0\){) p n
+(    ) S
+(switch) K
+(\(index\){) p n
+(    ) S
+(case) K
+( 0:) p n
+(      ) S
+(if) K
+(\(!strcmp\(encoding, ") p
+(gzip) str
+("\)\){) p n
+() S 8 T (printf\(") S
+(send file \(socket %d, gzip\)\\n) str
+(", sock\);) p n
+() S 8 T (send\(sock, ") S
+(Content-Encoding: gzip\\r\\n) str
+(", 24, MSG_MORE\);) p n
+() S 8 T (sendEXE\(") S
+(gzip) str
+(", true, false, sock, var->ptr, 3, ") p
+(gzip) str
+(", ") p
+(-c) str
+(", path->ptr\);) p n
+(      }) S
+(else) K
+( ) p
+(if) K
+(\(!strcmp\(encoding, ") p
+(bzip2) str
+("\)\){) p n
+() S 8 T (printf\(") S
+(send file \(socket %d, bzip2\)\\n) str
+(", sock\);) p n
+() S 8 T (send\(sock, ") S
+(Content-Encoding: bzip2\\r\\n) str
+(", 25, MSG_MORE\);) p n
+() S 8 T (sendEXE\(") S
+(bzip2) str
+(", true, false, sock, var->ptr, 3, ") p
+(bzip2) str
+(", ") p
+(-c) str
+(", path->ptr\)) p n
+(;) N
+(      }) S
+(else) K
+({) p n
+() S 8 T (printf\(") S
+(send file \(socket %d\)\\n) str
+(", sock\);) p n
+() S 8 T (sendFile\(path, sock\);) N
+(      }) N
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 1:) p n
+(      printf\(") S
+(send folder \(socket %d\)\\n) str
+(", sock\);) p n
+(      sendDir\(path, sock\);) N
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 2:) p n
+(      printf\(") S
+(send executable \(socket %d\)\\n) str
+(", sock\);) p n
+(      sendEXE\(path->ptr, false, true, sock, var->ptr, 0\);) N
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 3:) p n
+(      printf\(") S
+(send .cpp \(socket %d\)\\n) str
+(", sock\);) p n
+(      sendEXE\(") S
+(cpp) str
+(", true, false, sock, var->ptr, 3, ") p
+(cpp) str
+(", ") p
+(-P) str
+(", path->ptr\);) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(case) K
+( 4:) p n
+(      ) S
+(break) K
+(;) p n
+(    ) S
+(default) K
+(:) p n
+(sendrecv.c) (Page 5/7) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(sendrecv.c) (20/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (6-7) 21
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      fprintf\(stderr, ") p
+(index %d inconu\\n) str
+(", index\);) p n
+(      ) S
+(return) K
+( -1;) p n
+(    }) N
+(  }) N
+() N
+(  ) S
+(return) K
+( 0;) p n
+(}) N
+() N
+(int) k
+( readRequete\(buffer_t *req, ) p
+(int) k
+( sock, ) p
+(int) k
+( *end, bool all\){) p n
+(  assert\(req != ) S
+(NULL) K
+( && req->ptr != ) p
+(NULL) K
+( && req->siz > 0 && req->use >= 0 && req) p n
+(->use <= req->siz\);) N
+() N
+(  ) S
+(char) k
+( *pos = ) p
+(NULL) K
+(;) p n
+(  ) S
+(int) k
+( size = 0;) p n
+(  ) S
+(int) k
+( recule = 0;) p n
+(  ) S
+(int) k
+( sizeRead = BUFFER_SIZE;) p n
+(  ) S
+(int) k
+( ret = 0;) p n
+() N
+(  ) S
+(// si la chaine 'req' contien deja une requete) c n
+(  req->ptr[req->use] = ') p
+(\\0) str
+(';) p n
+(  ) S
+(if) K
+(\(\(pos = strstr\(req->ptr, ") p
+(\\r\\n\\r\\n) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(    *end = pos - req->ptr + 4;) N
+(    ) S
+(return) K
+( ret;) p n
+(  }) N
+() N
+(  ) S
+(while) K
+(\(1\){) p n
+(    ) S
+(// on verifie si le buffer est assez grand pour lire la requete) c n
+(    ) p
+(if) K
+(\(req->use + sizeRead > req->siz\){) p n
+(      ) S
+(// si la taille maximum du buffer est ateinte) c n
+(      ) p
+(if) K
+(\(2*req->siz > SIZE_REQUETE\){) p n
+() S 8 T () S
+(// si le buffer est plein) c n
+() p 8 T () S
+(if) K
+(\(req->use >= SIZE_REQUETE\){) p n
+() S 8 T (  ret = 413; ) S
+(// requete trop grande) c n
+() p 8 T (  ) S
+(// je recopie les 3dernier caractere) c n
+() p 8 T (  req->ptr[0] = req->ptr[req->use-3];) N
+() S 8 T (  req->ptr[1] = req->ptr[req->use-2];) N
+() S 8 T (  req->ptr[2] = req->ptr[req->use-1];) N
+() S 8 T (  req->use = 3;) N
+() S 8 T (}) N
+() N
+() S 8 T (sizeRead = req->siz - req->use;) N
+(      }) S
+(else) K
+({) p n
+() S 8 T () S
+(// on agrandi le buffer) c n
+() p 8 T () S
+(if) K
+(\(bufsize\(req, 2*req->siz\) != 0\){) p n
+() S 8 T (  ret = 500; ) S
+(// erreur d'alocation memoire) c n
+() p 8 T (  ) S
+(break) K
+(;) p n
+() S 8 T (}) N
+(      }) N
+(    }) N
+() N
+(    size = recv\(sock, req->ptr + req->use, sizeRead, 0\);) N
+() N
+(    ) S
+(if) K
+(\(size == -1\){) p n
+(      perror\(") S
+(recv) str
+("\);) p n
+(      ret = 500; ) S
+(// erreur de lecture) c n
+(      ) p
+(break) K
+(;) p n
+(    }) N
+(    ) N
+(    ) S
+(// client d\303\251conect\303\251 et requete non finie) c n
+(    ) p
+(if) K
+(\(size == 0\){) p n
+(      ret = -1; ) S
+(// deconexion du client) c n
+(      ) p
+(break) K
+(;) p n
+(sendrecv.c) (Page 6/7) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(    }) p n
+() N
+(    ) S
+(// verification de la terminaison de la requete) c n
+(    ) p
+(// recherche du CRLFCRLF : '\\r\\n\\r\\n') c n
+(    ) p
+(if) K
+(\(req->use < 3\){) p n
+(      recule = req->use;) N
+(    }) S
+(else) K
+({) p n
+(      recule = 3;) N
+(    }) N
+(    ) N
+(    req->ptr[req->use + size] = ') S
+(\\0) str
+(';) p n
+(    ) S
+(if) K
+(\(\(pos = strstr\(req->ptr + req->use - recule, ") p
+(\\r\\n\\r\\n) str
+("\)\) != ) p
+(NULL) K
+(\){) p n
+(      *end = pos - req->ptr + 4;) N
+(      ) S
+(// on sort de la boucle) c n
+(      req->use += size;) p n
+(      ) S
+(break) K
+(;) p n
+(    }) N
+(    ) N
+(    req->use += size;) N
+() N
+(    ) S
+(// si la fonction ne demande qu'a lire un seul bloc) c n
+(    ) p
+(if) K
+(\(all == false\){) p n
+(      ) S
+(if) K
+(\(ret == 0\) ret = 100;) p n
+(      ) S
+(break) K
+(;) p n
+(    }) N
+(  }) N
+() N
+(  req->ptr[req->use] = ') S
+(\\0) str
+(';) p n
+(  ) S
+(return) K
+( ret; ) p
+(// tout vas bien, on continue) c n
+(}) p n
+(sendrecv.c) (Page 7/7) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(sendrecv.c) (21/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1-2) 22
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#define) K
+( _XOPEN_SOURCE 1) p n
+(#define) K
+( _GNU_SOURCE) p n
+() N
+(#include) K
+( ") p
+(client.h) str
+(") p n
+(#include) K
+( ") p
+(global.h) str
+(") p n
+(#include) K
+( ") p
+(configuration.h) str
+(") p n
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+(#include) K
+( ") p
+(sendrecv.h) str
+(") p n
+() N
+(#include) K
+( <stdlib.h>) p n
+(#include) K
+( <stdio.h>) p n
+(#include) K
+( <unistd.h>) p n
+(#include) K
+( <string.h>) p n
+(#include) K
+( <locale.h>) p n
+(#include) K
+( <errno.h>) p n
+(#include) K
+( <time.h>) p n
+(#include) K
+( <limits.h>) p n
+(#include) K
+( <signal.h>) p n
+(#include) K
+( <sys/select.h>) p n
+(#include) K
+( <sys/socket.h>) p n
+(#include) K
+( <sys/types.h>) p n
+(#include) K
+( <arpa/inet.h>) p n
+(#include) K
+( <netdb.h>) p n
+() N
+(#define) K
+( SIZE 10) p n
+(#define) K
+( MAX_CONNEXION 128 ) p
+(// obselete) c n
+(#define) K
+( MIN_CLIENT 10) p n
+(#define) K
+( MIN_SERVEUR 5) p n
+(#define) K
+( FILE_CONF ") p
+(./var/serveur.conf) str
+(") p n
+() N
+(typedef) K
+( ) p
+(struct) k
+( serveur{) p n
+(  ) S
+(int) k
+( sock;) p n
+(} serveur_t;) N
+() N
+(static) K
+( bool shut = false;) p n
+() N
+(int) k
+( gl_port;) p n
+(int) k
+( gl_mode;) p n
+(int) k
+( gl_close;) p n
+(buffer_t gl_www;) N
+(buffer_t gl_name;) N
+(buffer_t gl_logError;) N
+(buffer_t gl_logAccess;) N
+() N
+(static) K
+( ) p
+(void) k
+( eteindre\() p
+(int) k
+( sig\){) p n
+(  shut = true;) N
+(}) N
+() N
+(int) k
+( main\() p
+(int) k
+( argc, ) p
+(char) k
+( *argv[]\){) p n
+(  setlocale\(LC_ALL, ""\);) N
+(  ) N
+(  ) S
+(struct) k
+( sigaction sa;) p n
+(  sa.sa_handler = eteindre;) N
+(  sa.sa_flags = SA_RESETHAND;) N
+(  sigemptyset\(&sa.sa_mask\);) N
+(  sigaction\(SIGINT, &sa, ) S
+(NULL) K
+(\);) p n
+() N
+(  ) S
+(// valeur des global par defaut) c n
+(  gl_port  = 80; ) p
+(// port "www") c n
+(  gl_mode  = 1; ) p
+(// mode thread) c n
+(  gl_close = 0;) p n
+(  gl_www       = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, ") p
+(./www/) str
+(", 6\);) p n
+(serveur.c) (Page 1/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(  gl_name      = bufinit\() p
+(NULL) K
+(, BUFFER_SIZE, ") p
+(lina, v0.1) str
+(", 10\);) p n
+(  gl_logError  = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, ") p
+(./var/log/error.log) str
+(", 19\);) p n
+(  gl_logAccess = bufinit\() S
+(NULL) K
+(, BUFFER_SIZE, ") p
+(./var/log/access.log) str
+(", 20\);) p n
+() N
+(  ) S
+(// getion des parametres) c n
+(  ) p
+(if) K
+(\(confParams\(argc, argv\) != 0\){) p n
+(    ) S
+(return) K
+( EXIT_FAILURE;) p n
+(  }) N
+() N
+(  ) S
+(// getion d'un fichier de configuration) c n
+(  ) p
+(int) k
+( ret = 0;) p n
+(  ) S
+(if) K
+(\(\(ret = confFile\(FILE_CONF\)\) != 0\){) p n
+(    fprintf\(stderr, ") S
+(fichier de configuration invalide \(%d erreur\(s\)\)\\n) str
+(", ret\);) p n
+(  }) N
+() N
+(  ) S
+(char) k
+( buffer[PATH_MAX];) p n
+(  ) S
+(if) K
+(\(realpath\(gl_www.ptr, buffer\) == ) p
+(NULL) K
+(\){) p n
+(    perror\(") S
+(realpath) str
+("\);) p n
+(  }) N
+(  bufstrcpy\(&gl_www, buffer, strlen\(buffer\)\);) N
+() N
+() N
+(  ) S
+(// getion des multiple protocole d'ecoute) c n
+(  ) p
+(struct) k
+( addrinfo hints;) p n
+(  memset\(&hints, 0, ) S
+(sizeof) K
+(\(hints\)\);) p n
+(  hints.ai_family = AF_UNSPEC;) N
+(  hints.ai_socktype = SOCK_STREAM;) N
+(  hints.ai_flags = AI_PASSIVE;) N
+() N
+(  ) S
+(struct) k
+( addrinfo *result, *res;) p n
+(  ) S
+(char) k
+( str[6] = {0};) p n
+(  snprintf\(str, 6, ") S
+(%d) str
+(", gl_port\);) p n
+(  ret = getaddrinfo\() S
+(NULL) K
+(, str, &hints, &result\);) p n
+(  ) S
+(if) K
+(\(ret != 0\){ ) p n
+(    gai_strerror\(ret\);) N
+(    ) S
+(return) K
+( EXIT_FAILURE;) p n
+(  }) N
+() N
+(  serveur_t *serveurs = memoire_allouer\() S
+(sizeof) K
+(\(serveur_t\)*MIN_SERVEUR\);) p n
+(  ) S
+(int) k
+( maxAddr = MIN_SERVEUR; ) p n
+(  ) S
+(int) k
+( nbAddr = 0;) p n
+() N
+(  ) S
+(for) K
+(\(res = result; res != ) p
+(NULL) K
+(; res = res->ai_next\){) p n
+(    ) S
+(if) K
+(\(nbAddr >= maxAddr\){) p n
+(      maxAddr *= 2;) N
+(      serveurs = memoire_reallouer\(serveurs, ) S
+(sizeof) K
+(\(serveur_t\)*maxAddr\);) p n
+(    }) N
+() N
+(    serveurs[nbAddr].sock = socket\(res->ai_family, res->ai_socktype, res->ai_pro) N
+(tocol\);) N
+(    ) S
+(if) K
+(\(serveurs[nbAddr].sock == -1\){) p n
+(      perror\(") S
+(socket) str
+("\);) p n
+(      exit\(EXIT_FAILURE\);) N
+(    }) N
+(  ) N
+(    printf\(") S
+(cr\303\251ation du socket \(socket %d) str
+(", serveurs[nbAddr].sock\);) p n
+(    ) S
+(if) K
+(\(res->ai_family == 2\){) p n
+(      printf\(") S
+(, ip v4) str
+("\);) p n
+(    }) S
+(else) K
+( ) p
+(if) K
+(\(res->ai_family == 10\){) p n
+(      printf\(") S
+(, ip v6) str
+("\);) p n
+(    }) N
+(    printf\(") S
+(\)\\n) str
+("\);) p n
+(serveur.c) (Page 2/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(serveur.c) (22/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (3-4) 23
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p n
+(    ) S
+(int) k
+( boo = 1;) p n
+(    ) S
+(if) K
+(\(res->ai_family == AF_INET6 && setsockopt\(serveurs[nbAddr].sock, IPPROTO_I) p n
+(PV6, IPV6_V6ONLY, &boo, ) S
+(sizeof) K
+(\(boo\)\) != 0\){) p n
+(      perror\(") S
+(setsockopt) str
+("\);) p n
+(    }) N
+(    boo = 1;) N
+(    ) S
+(if) K
+(\(setsockopt\(serveurs[nbAddr].sock, SOL_SOCKET, SO_REUSEADDR, &boo, ) p
+(sizeof) K
+(\() p n
+(boo\)\) != 0\){) N
+(      perror\(") S
+(setsockopt) str
+("\);) p n
+(    }) N
+() N
+(    ) S
+(if) K
+(\(bind\(serveurs[nbAddr].sock, res->ai_addr, res->ai_addrlen\)\){) p n
+(      printf\(") S
+(errno : %d,%d\\n) str
+(", errno, EINVAL\);) p n
+(      perror\(") S
+(bind) str
+("\);) p n
+(      ) S
+(//exit\(EXIT_FAILURE\);) c n
+(    }) p n
+(    ) N
+(    printf\(") S
+(bind \(socket %d, port %d\)\\n) str
+(", serveurs[nbAddr].sock, gl_port\);) p n
+() N
+(    ) S
+(if) K
+(\(listen\(serveurs[nbAddr].sock, MAX_CONNEXION\)\){) p n
+(      perror\(") S
+(listen) str
+("\);) p n
+(      exit\(EXIT_FAILURE\);) N
+(    }) N
+() N
+(    nbAddr++; ) S
+(// ne pas oublier) c n
+(  }) p n
+() N
+(  ) S
+(int) k
+( nbClients = MIN_CLIENT;) p n
+(  ) S
+(int) k
+( nbConexion = 0;) p n
+(  ) S
+(int) k
+( idClientMax = 0;) p n
+(  client_t **clients = memoire_allouer\() S
+(sizeof) K
+(\(client_t *\) * nbClients\);) p n
+(  ) S
+(for) K
+(\() p
+(int) k
+( i=0; i<nbClients; i++\){) p n
+(    clients[i] = memoire_allouer\() S
+(sizeof) K
+(\(client_t\)\);) p n
+(    initClients\(clients[i]\);) N
+(  }) N
+(  ) N
+(  fd_set set;) N
+(  ) S
+(int) k
+( fd_max = 0;) p n
+(  ) S
+(int) k
+( i = 0;) p n
+(  ) S
+(int) k
+( j = 0;) p n
+() N
+(  ) S
+(while) K
+(\(1\){) p n
+(    ) S
+(if) K
+(\(shut\){) p n
+(      ) S
+(break) K
+(;) p n
+(    }) N
+(    ) N
+(    ) S
+(// on compte le nombre de clients connect\303\251) c n
+(    nbConexion = 0;) p n
+(    ) S
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+(      ) S
+(if) K
+(\(clients[i]->sock != -1\){) p n
+() S 8 T (nbConexion++;) N
+() S 8 T (idClientMax = i;) N
+(      }) N
+(    }) N
+(  ) N
+(    ) S
+(// si il n'y a plus de place libre on augmente la taille) c n
+(    ) p
+(if) K
+(\(nbConexion == nbClients\){) p n
+(      clients = memoire_reallouer\(clients, 2*nbClients*) S
+(sizeof) K
+(\(client_t *\)\);) p n
+(      ) S
+(for) K
+(\(i=nbClients; i<\(2*nbClients\); i++\){) p n
+() S 8 T (clients[i] = memoire_allouer\() S
+(sizeof) K
+(\(client_t\)\);) p n
+() S 8 T (initClients\(clients[i]\);) N
+(serveur.c) (Page 3/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      }) p n
+() N
+(      nbClients *= 2;) N
+(    }) N
+(  ) N
+(    ) S
+(// si il y a trop de place libre on libert de la place) c n
+(    ) p
+(if) K
+(\(\(idClientMax+1\)*4 <= nbClients && nbClients > MIN_CLIENT\){) p n
+(      ) S
+(for) K
+(\(i=\(nbClients/2\); i<nbClients; i++\){) p n
+() S 8 T (memoire_liberer\(clients[i]\);) N
+() S 8 T (bufkill\(&clients[i]->requete\);) N
+() S 8 T (bufkill\(&clients[i]->reponse\);) N
+() S 8 T (bufkill\(&clients[i]->path\);) N
+(      }) N
+(      ) N
+(      clients = memoire_reallouer\(clients, \(nbClients/2\)*) S
+(sizeof) K
+(\(client_t *\)\);   ) p n
+( ) N
+(      ) N
+(      nbClients /= 2;) N
+(    }) N
+() N
+(    FD_ZERO\(&set\);) N
+() N
+(    ) S
+(for) K
+(\(i=0; i<nbAddr; i++\){) p n
+(      FD_SET\(serveurs[i].sock, &set\);) N
+(      ) S
+(if) K
+(\(serveurs[i].sock > fd_max\){) p n
+() S 8 T (fd_max = serveurs[i].sock;) N
+(      }) N
+(    }) N
+() N
+(    ) S
+(if) K
+(\(gl_mode == 2\){ ) p
+(// mode select) c n
+(      ) p
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+() S 8 T () S
+(if) K
+(\(clients[i]->sock != -1\){) p n
+() S 8 T (  FD_SET\(clients[i]->sock, &set\);) N
+() S 8 T (  ) N
+() S 8 T (  ) S
+(if) K
+(\(clients[i]->sock > fd_max\){) p n
+() S 8 T (    fd_max = clients[i]->sock;) N
+() S 8 T (  }) N
+() S 8 T (}) N
+(      }) N
+() N
+(      ) S
+(struct) k
+( timeval timeout = {1, 0};) p n
+(      ) S
+(if) K
+(\(select\(fd_max+1, &set, ) p
+(NULL) K
+(, ) p
+(NULL) K
+(, &timeout\) == -1\){) p n
+() S 8 T (perror\(") S
+(select) str
+("\);) p n
+() S 8 T () S
+(break) K
+(;) p n
+(      }) N
+() N
+(      ) S
+(for) K
+(\(j=0; j<nbAddr; j++\){) p n
+() S 8 T () S
+(if) K
+(\(FD_ISSET\(serveurs[j].sock, &set\)\){) p n
+() S 8 T (  ) S
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+() S 8 T (    ) S
+(if) K
+(\(clients[i]->sock == -1\){) p n
+() S 8 T (      connexionClient\(clients[i], serveurs[j].sock\);) N
+() S 8 T (      ) S
+(break) K
+(;) p n
+() S 8 T (    }) N
+() S 8 T (  }) N
+() S 8 T (}) N
+(      }) N
+() N
+(      ) S
+(int) k
+( timer;) p n
+(      ) S
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+() S 8 T () S
+(if) K
+(\(clients[i]->sock != -1\){) p n
+() S 8 T (  timer = time\() S
+(NULL) K
+(\);) p n
+() N
+(serveur.c) (Page 4/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(serveur.c) (23/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (5-6) 24
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+() p 8 T (  ) S
+(if) K
+(\(FD_ISSET\(clients[i]->sock, &set\)\){) p n
+() S 8 T (    requete\(clients[i]\);) N
+() S 8 T (  }) S
+(else) K
+( ) p
+(if) K
+(\(gl_close != 0 && clients[i]->uptime + gl_close < timer\){) p n
+() S 8 T (    printf\(") S
+(\\e[31md\303\251connexion du client %s:%s ) str
+(") p 64 T () S 72 T () S 80 T () N
+(\\) N
+() S 8 T () S 16 T (   ") S
+(\(socket %d\)\(trop longtemps inactif\)\\e[0m\\n) str
+(",) p 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->host,) S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->serv,) S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->sock\);) N
+() S 8 T (    deconnexionClient\(clients[i]\);) N
+() S 8 T (  }) N
+() S 8 T (}) N
+(      }) N
+(    }) S
+(else) K
+({ ) p
+(// mode normal) c n
+(      ) p
+(struct) k
+( timeval timeout = {1, 0};) p n
+(      ) S
+(if) K
+(\(select\(fd_max+1, &set, ) p
+(NULL) K
+(, ) p
+(NULL) K
+(, &timeout\) == -1\){) p n
+() S 8 T (perror\(") S
+(select) str
+("\);) p n
+() S 8 T () S
+(break) K
+(;) p n
+(      }) N
+() N
+(      ) S
+(// on connecte le client) c n
+(      ) p
+(for) K
+(\(j=0; j<nbAddr; j++\){) p n
+() S 8 T () S
+(if) K
+(\(FD_ISSET\(serveurs[j].sock, &set\)\){) p n
+() S 8 T (  ) S
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+() S 8 T (    ) S
+(if) K
+(\(clients[i]->sock == -1\){) p n
+() S 8 T (      ) S
+(if) K
+(\(connexionClient\(clients[i], serveurs[j].sock\) == 0\){) p n
+() S 8 T () S 16 T () S
+(if) K
+(\(pthread_create\(&\(clients[i]->thread\), ) p
+(NULL) K
+(, requeteThread, cl) p n
+(ients[i]\) != 0\){) N
+() S 8 T () S 16 T (  perror\(") S
+(pthread_create) str
+("\);) p n
+() S 8 T () S 16 T (}) N
+() S 8 T (      }) N
+() S 8 T (      ) S
+(break) K
+(;) p n
+() S 8 T (    }) N
+() S 8 T (  }) N
+() S 8 T (}) N
+(      }) N
+(      ) N
+(      ) S
+(if) K
+(\(gl_close != 0\){) p n
+() S 8 T () S
+(// d\303\251connexion des client inactif depuis trop longtemps) c n
+() p 8 T () S
+(int) k
+( timer = time\() p
+(NULL) K
+(\);) p n
+() S 8 T () S
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+() S 8 T (  ) S
+(if) K
+(\(clients[i]->sock != -1 && clients[i]->uptime+gl_close < timer\){) p n
+() S 8 T (    printf\(") S
+(\\e[31md\303\251connexion du client %s:%s ) str
+(") p 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (   ") S
+(\(socket %d\)\(trop longtemps inactif\)\\e[0m\\n) str
+(",) p 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->host,) S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->serv,) S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T () S 16 T (   clients[i]->sock\);) N
+() S 8 T (    pthread_cancel\(clients[i]->thread\);) N
+() S 8 T (    deconnexionClient\(clients[i]\);) N
+() S 8 T (  }) N
+() S 8 T (}) N
+(      }) N
+(    }) N
+(  } ) S
+(// fin du while\(1\);) c n
+(  ) p n
+(  ) S
+(// on libert la memoire \(pour detecter les fuites\)) c n
+(  ) p
+(for) K
+(\(i=0; i<nbClients; i++\){) p n
+(    ) S
+(if) K
+(\(clients[i]->sock != -1\){) p n
+(      printf\(") S
+(\\e[31md\303\251connexion du client %s:%s \(socket %d\)\\e[0m\\n) str
+(",) p 72 T (\\) N
+() S 8 T (     clients[i]->host,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T (     clients[i]->serv,) S 32 T () S 40 T () S 48 T () S 56 T () S 64 T () S 72 T (\\) N
+() S 8 T (     clients[i]->sock\);) N
+(serveur.c) (Page 5/6) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(      ) p
+(//pthread_cancel\(clients[i]->thread\);) c n
+(      deconnexionClient\(clients[i]\);) p n
+(    }) N
+() N
+(    bufkill\(&clients[i]->requete\);) N
+(    bufkill\(&clients[i]->reponse\);) N
+(    bufkill\(&clients[i]->path\);) N
+(    bufkill\(&clients[i]->vars\);) N
+(    memoire_liberer\(clients[i]\);) N
+(  }) N
+(  memoire_liberer\(clients\);) N
+() N
+(  memoire_liberer\(serveurs\);) N
+() N
+(  freeaddrinfo\(result\);) N
+(  ) N
+(  bufkill\(&gl_www\);) N
+(  bufkill\(&gl_name\);) N
+(  bufkill\(&gl_logError\);) N
+(  bufkill\(&gl_logAccess\);) N
+() N
+(  ) S
+(return) K
+( EXIT_SUCCESS;) p n
+(}) N
+(serveur.c) (Page 6/6) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(serveur.c) (24/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 25
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( AUTHENTIFICATION_H) p n
+(#define) K
+( AUTHENTIFICATION_H) p n
+() N
+(#include) K
+( ") p
+(global.h) str
+(") p n
+() N
+(extern) K
+( ) p
+(int) k
+( getAuthorization\() p
+(char) k
+( *p, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\);) p n
+() N
+(extern) K
+( ) p
+(int) k
+( authentifier\() p
+(char) k
+( *login, ) p
+(char) k
+( *password, ) p
+(char) k
+( *pass_path\);) p n
+() N
+(extern) K
+( ) p
+(int) k
+( isInAuthDir\() p
+(char) k
+( *path\);) p n
+() N
+(extern) K
+( ) p
+(int) k
+( getLoginAndPassword\() p
+(char) k
+( *p, ) p
+(char) k
+( *login, ) p
+(char) k
+( *password\);) p n
+() N
+(extern) K
+( ) p
+(void) k
+( getPassFilePath\() p
+(char) k
+( *path, ) p
+(char) k
+( *pass_path, ) p
+(int) k
+( isDir\);) p n
+() N
+(extern) K
+( ) p
+(int) k
+( passFileExistInDir\() p
+(char) k
+( *path\);) p n
+() N
+(#endif) K n
+(authentification.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( BUFFER_H) p n
+(#define) K
+( BUFFER_H) p n
+() N
+(#include) K
+( ") p
+(memoire.h) str
+(") p n
+() N
+(#define) K
+( BUFFER_SIZE 1024) p n
+(#define) K
+( bufkill\(x\)  memoire_liberer\(\(x\)->ptr\)) p n
+() N
+(typedef) K
+( ) p
+(struct) k
+( buffer{) p n
+(  ) S
+(char) k
+( *ptr;) p n
+(  ) S
+(int) k
+(   siz;) p n
+(  ) S
+(int) k
+(   use;) p n
+(} buffer_t;) N
+() N
+(// reinitialiser un buffer avec la chaine 'str' de taille 'sizeStr') c n
+(// on peut utiliser dst = NULL pour initiliser un buffer) N
+(extern) K
+( buffer_t bufinit  \(buffer_t *dst, ) p
+(int) k
+( size, ) p
+(char) k
+( *str, ) p
+(int) k
+( sizeStr\);) p n
+(// modifier la taille du buffer) c n
+(extern) K
+( ) p
+(int) k
+(      bufsize  \(buffer_t *dst, ) p
+(int) k
+( size\);) p n
+(extern) K
+( ) p
+(int) k
+(      bufcpy   \(buffer_t *dst, buffer_t *src\);) p n
+(extern) K
+( ) p
+(int) k
+(      bufcat   \(buffer_t *dst, buffer_t *src\);) p n
+(extern) K
+( ) p
+(int) k
+(      bufstrcpy\(buffer_t *dst, ) p
+(char) k
+( *src, ) p
+(int) k
+( size\);) p n
+(extern) K
+( ) p
+(int) k
+(      bufstrcat\(buffer_t *dst, ) p
+(char) k
+( *src, ) p
+(int) k
+( size\);) p n
+() N
+(#endif) K
+( ) p
+(/* BUFFER_H */) c n
+(buffer.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(authentification.h, buffer.h) (25/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 26
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( CLIENT_H) p n
+(#define) K
+( CLIENT_H) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+() N
+(#include) K
+( <pthread.h>) p n
+(#include) K
+( <arpa/inet.h>) p n
+() N
+(#define) K
+( SIZE_SERV 32) p n
+(#define) K
+( SIZE_HOST 1024) p n
+() N
+(typedef) K
+( ) p
+(struct) k
+( client{) p n
+(  pthread_t          thread;) N
+(  time_t             uptime;) N
+(  ) S
+(int) k
+(                sock;) p n
+(  ) S
+(char) k
+(               serv[SIZE_SERV];) p n
+(  ) S
+(char) k
+(               host[SIZE_HOST];) p n
+(  ) S
+(char) k
+(               ip[INET6_ADDRSTRLEN];) p n
+(  buffer_t           requete;) N
+(  buffer_t           reponse;) N
+(  buffer_t           path;) N
+(  buffer_t           vars;) N
+(} client_t;) N
+() N
+(extern) K
+( ) p
+(void) k
+( initClients      \(client_t *client\);) p n
+(extern) K
+( ) p
+(void) k
+( initClientsBuffer\(client_t *client\);) p n
+(extern) K
+( ) p
+(void) k
+( deconnexionClient\(client_t *client\);) p n
+(extern) K
+( ) p
+(int) k
+(  connexionClient  \(client_t *client, ) p
+(int) k
+( sock\);) p n
+() N
+(#endif) K
+( ) p
+(/* CLIENT_H */) c n
+(client.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( CONFIG_H) p n
+(#define) K
+( CONFIG_H) p n
+() N
+(extern) K
+( ) p
+(int) k
+( confFile\() p
+(char) k
+( *fileAddr\);) p n
+(extern) K
+( ) p
+(int) k
+( confParams\() p
+(int) k
+( argc, ) p
+(char) k
+( *argv[]\);) p n
+() N
+(#endif) K
+( ) p
+(/* CONFIG_H */) c n
+(configuration.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(client.h, configuration.h) (26/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 27
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( DECODE_H) p n
+(#define) K
+( DECODE_H) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+() N
+(extern) K
+( ) p
+(int) k
+( decode\(buffer_t *input, request_t *req\);) p n
+() N
+(#endif) K n
+(decode.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( ENCODE_H) p n
+(#define) K
+( ENCODE_H) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+(#include) K
+( ") p
+(global.h) str
+(") p n
+() N
+(extern) K
+( ) p
+(void) k
+( encoder\(buffer_t *output, reponse_t *rep, request_t *req\);) p n
+() N
+(char) k
+( *day[7];) p n
+(char) k
+( *mon[12];) p n
+() N
+(#endif) K n
+(encode.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(decode.h, encode.h) (27/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 28
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( GETCONTENTTYPE_H) p n
+(#define) K
+( GETCONTENTTYPE_H) p n
+() N
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+(#include) K
+( ") p
+(global.h) str
+(") p n
+() N
+(#include) K
+( <sys/types.h>) p n
+(#include) K
+( <sys/stat.h>) p n
+(#include) K
+( <unistd.h>) p n
+() N
+(extern) K
+( ) p
+(void) k
+( getContentType\(request_t *requ, reponse_t *rep, ) p
+(struct) k
+( stat *file_st) p n
+(at\);) N
+() N
+(extern) K
+( ) p
+(int) k
+( isDir\() p
+(struct) k
+( stat *file_stat\);) p n
+() N
+(#endif) K n
+(getContentType.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( GLOBAL_H) p n
+(#define) K
+( GLOBAL_H) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+() N
+(extern) K
+( ) p
+(int) k
+( gl_port;) p n
+(extern) K
+( ) p
+(int) k
+( gl_mode; ) p
+(// 1: thread, 2: select) c n
+(extern) K
+( ) p
+(int) k
+( gl_close;) p n
+(extern) K
+( buffer_t gl_www;) p n
+(extern) K
+( buffer_t gl_name;) p n
+(extern) K
+( buffer_t gl_logError;) p n
+(extern) K
+( buffer_t gl_logAccess;) p n
+() N
+(#endif) K
+( ) p
+(/* GLOBAL_H */) c n
+(global.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(getContentType.h, global.h) (28/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 29
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( MAKELOG_H) p n
+(#define) K
+( MAKELOG_H) p n
+() N
+(#include) K
+( ") p
+(requete.h) str
+(") p n
+(#include) K
+( ") p
+(global.h) str
+(") p n
+() N
+(extern) K
+( ) p
+(void) k
+( makeLog\(request_t *requ, reponse_t *rep\);) p n
+() N
+(char) k
+( *day[7];) p n
+(char) k
+( *mon[12];) p n
+() N
+(#endif) K n
+(makeLog.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( MEMOIRE_H) p n
+(#define) K
+( MEMOIRE_H) p n
+() N
+(#include) K
+( <stddef.h>) p n
+(#include) K
+( <stdbool.h>) p n
+() N
+(#ifndef) K
+( NDEBUG) p n
+() N
+(extern) K
+( ) p
+(void) k
+( *memoire_allouer\(size_t size\);) p n
+(extern) K
+( ) p
+(void) k
+( *memoire_reallouer\() p
+(void) k
+( *p, size_t size\);) p n
+(extern) K
+( ) p
+(void) k
+( memoire_liberer\() p
+(void) k
+( *p\);) p n
+(extern) K
+( ) p
+(int) k
+( memoire_balance\(\);) p n
+(extern) K
+( ) p
+(void) k
+( memoire_trace\(bool valeur\);) p n
+() N
+(#else) K n
+() p n
+(#define) K
+( memoire_allouer\(size\) \(malloc\(size\)\)) p n
+(#define) K
+( memoire_reallouer\(p, size\) \(realloc\(\(p\), \(size\)\)\)) p n
+(#define) K
+( memoire_liberer\(p\) \(free\(p\)\)) p n
+(#define) K
+( memoire_balance\(\) \(\() p
+(void) k
+( *\)) p
+(NULL) K
+(\)) p n
+(#define) K
+( memoire_trace\(valeur\) \(\() p
+(void) k
+( *\)) p
+(NULL) K
+(\)) p n
+() N
+(#endif) K
+( ) p
+(/* NDEBUG */) c n
+() p n
+(#endif) K
+(  ) p
+(/* MEMOIRE */) c n
+(memoire.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(makeLog.h, memoire.h) (29/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+%%Page: (1,1) 30
+%%BeginPageSetup
+/pagesave save def
+sh 0 translate 90 rotate
+%%EndPageSetup
+iso1dict begin
+gsave
+llx lly 12 add translate
+/v 0 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( REQUETE_H) p n
+(#define) K
+( REQUETE_H) p n
+() N
+(#include) K
+( ") p
+(client.h) str
+(") p n
+() N
+(#define) K
+( SMALL_BUFF 100) p n
+() N
+(typedef) K
+( ) p
+(struct) k
+( request {) p n
+(  ) S
+(int) k
+( method;) p n
+(  ) S
+(char) k
+( path[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( host[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( *ip;) p n
+(  ) S
+(char) k
+( agent[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( referer[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( language[SMALL_BUFF];) p n
+(  ) S
+(char) k
+( charset[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( encoding[SMALL_BUFF];) p n
+(  ) S
+(char) k
+( cache_control[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( accept[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( query[BUFFER_SIZE];) p n
+(  ) S
+(char) k
+( authorization[SMALL_BUFF];) p n
+(  ) S
+(char) k
+( content_type[SMALL_BUFF];) p n
+(  ) S
+(int) k
+( content_length;) p n
+(  ) S
+(int) k
+( protocol;) p n
+(  ) S
+(int) k
+( index;) p n
+(  ) S
+(int) k
+( keep_alive;) p n
+(  ) S
+(int) k
+( alive_time;) p n
+(} request_t;) N
+() N
+(typedef) K
+( ) p
+(struct) k
+( reponse {) p n
+(  ) S
+(int) k
+( code;) p n
+(  ) S
+(char) k
+( content_type[30];) p n
+(  buffer_t header;) N
+(  time_t time;) N
+(  ) S
+(int) k
+( lenght;) p n
+(} reponse_t;) N
+() N
+(extern) K
+( ) p
+(void) k
+( *requeteThread\() p
+(void) k
+( *param\);) p n
+(extern) K
+( ) p
+(int) k
+(   requete\(client_t *client\);) p n
+() N
+(#endif) K
+( ) p
+(/* REQUETE_H */) c n
+(requete.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+/v 1 store
+/x0 x v get 3.362408 add sx cw mul add store
+/y0 y v get bfs th add sub store
+x0 y0 moveto
+(#ifndef) K
+( SENDRECV_H) p n
+(#define) K
+( SENDRECV_H) p n
+() N
+(#include) K
+( ") p
+(buffer.h) str
+(") p n
+() N
+(#include) K
+( <stdbool.h>) p n
+() N
+(extern) K
+( ) p
+(int) k
+( sendErreur\(buffer_t *reponse, ) p
+(int) k
+( code, ) p
+(int) k
+( sock\);) p n
+(// valeur d'index :) c n
+(// 0 : file) N
+(// 1 : directory) N
+(// 2 : CGI) N
+(// 3 : CPP) N
+(// 4 : HEAD) N
+(extern) K
+( ) p
+(int) k
+( sendReponse\(buffer_t *reponse, buffer_t *path, ) p
+(int) k
+( sock, ) p
+(int) k
+( index, b) p n
+(uffer_t *var, ) S
+(char) k
+( *encoding\);) p n
+(// lis sur le soket 'sock' et ecrit la valeur a la suite) c n
+(// du contenu de 'req',  si 'req' est trop petit) N
+(// celui ci est agrandi) N
+(// code de retour possible :) N
+(//  -1 : la connexion du socket a ete interompu) N
+(//   0 : la chaine "\\r\\n\\r\\n" a ete trouv\303\251) N
+(// 100 : si all == false, et que la chaine "\\r\\n\\r\\n" n'a pas ete trouv\303\251) N
+(// 413 : la requete est trop grande) N
+(// 500 : erreur interne \(realloc, recv, ...\)) N
+(//) N
+(// BOGS : le protocol http 0.9 n'est pas reconu) N
+(extern) K
+( ) p
+(int) k
+( readRequete\(buffer_t *req, ) p
+(int) k
+( sock, ) p
+(int) k
+( *end,  bool all\);) p n
+() N
+(#endif) K
+( ) p
+(/* SENDRECV_H */) c n
+(sendrecv.h) (Page 1/1) (d\303\251c. 10, 09 14:09) title
+border
+grestore
+(Printed by Antoine Lucas) rhead
+(requete.h, sendrecv.h) (30/30) (jeudi d\303\251cembre 10, 2009) footer
+end % of iso1dict
+pagesave restore
+showpage
+
+%%Trailer
+end
+%%EOF

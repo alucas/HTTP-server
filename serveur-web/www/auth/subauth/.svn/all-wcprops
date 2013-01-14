@@ -1,0 +1,17 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/151/trunk/www/auth/subauth
+END
+page1.html
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/!svn/ver/151/trunk/www/auth/subauth/page1.html
+END
+.htpasswd
+K 25
+svn:wc:ra_dav:version-url
+V 50
+/svn/!svn/ver/151/trunk/www/auth/subauth/.htpasswd
+END
